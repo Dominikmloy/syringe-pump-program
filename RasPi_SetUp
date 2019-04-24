@@ -1,0 +1,43 @@
+1.	Prepare SD card with Debian OS
+   * Download the latest version of the Raspbian OS from https://www.raspberrypi.org/downloads/raspbian/.
+   * Install to your computer (might be different for MacOS or Linux OS)
+      * PuTTY (for remote access to RasPi via ssh)
+      * WinSCP (transfer data over ssh)
+      * BalenaEtcher (flash OS to SD)
+   * Flash OS to SD card (min 8 GB, 16 recommended, > class 6, format beforehand with “sd memory card formatter”)
+   * Add File named “ssh” without file name extensions to root (named “boot”) sd card folder to enable ssh on startup.
+   * If Wifi: add one file to boot folder of SD card:
+      * File named “wpa_supplicant.conf” with the following code:
+
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+update_config=1
+country=de
+network={
+    ssid="name of your wireless network"
+    psk="password of your wireless network"
+    key_mgmt=WPA-PSK
+}
+
+   * If ethernet:
+      * Connect RasPi to a monitor via HDMI, boot and get ip address from home screen.
+2.  Access RasPi remotely and prepare it for operation
+   * Connect to the raspberry pi with PuTTY over ssh:
+      * Ip:
+         * if wifi: enter same ip as in wpa_supplicant.conf
+         * if ethernet: enter ip written down from RasPi's home screen.
+      * Port: 22	
+   * Update software: (either with command line editor from RasPi's desktop or by using ssh.)
+      * > sudo apt-get update && sudo apt-get upgrade
+   * change password: 
+      * > passwd: 
+   * shutdown:
+      * > sudo shutdown -h now
+      * > sudo halt
+
+2.	Wire components
+   * Raspberry 3 B pinouts and explanation (https://de.pinout.xyz/)
+   * Motor driver: 
+      * End switch:
+         * red wire - VCC (RAMPS +) power
+         * black wire - GND (RAMPS -) ground
+         * green wire - SIGNAL (RAMPS S) signal
