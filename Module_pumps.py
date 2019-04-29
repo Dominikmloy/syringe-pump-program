@@ -45,20 +45,27 @@ class Chain(serial.Serial):
     """
     #configure serial settings and start logging
     def __init__(self, port):
-        port = port
-        baudrate = 9600
-        bytesize = "EIGHTBITS" # confirm
-        parity = "PARITY_NONE" # confirm
-        stopbits = "STOPBITS_ONE"
-        write_timeout = 2 # seconds
+        serial.Serial.__init__(self, port=port, stopbits=serial.STOPBITS_ONE, parity=serial.PARITY_NONE, timeout=2)
+        # port = port
+        # baudrate = 9600
+        # bytesize = "EIGHTBITS" # confirm
+        # parity = "PARITY_NONE" # confirm
+        # stopbits = "STOPBITS_ONE"
+        # write_timeout = 2 # seconds
 
-        logger_pump.info("Chain created:")#"\n{port},\n{baudrate},\n{bytesize},\n{parity},\n{stopbits},\n{write_timeout}")
+        self.flushOutput()
+        self.flushInput()
+
+        logger_pump.info("Chain created on %s", port)#"\n{port},\n{baudrate},\n{bytesize},\n{parity},\n{stopbits},\n{write_timeout}")
 
     def serial_read(self):
         response=port.read(1)
         logger_pump.info(response)
 
-class Pump(Chain):
+class PumpError(Exception):
+    pass
+
+class Pump(object):
 # TODO: Check flowrate ranges of pumps and integrate checks
 # that will throw errors if pump is supposed to pump faster than possible
     """
@@ -73,6 +80,21 @@ class Pump(Chain):
         self.address = address
         self.serialcon = chain
 
+        try:
+            self.serialcon.write(str(self.address) + 'VER\r')
+            resp = self.serialcon.read(17)
+            logger_pump.info(resp)
+
+            if resp[1:3] != str(self.address):
+                raise PumpError('No response from pump at address %s' %
+                                self.address)
+        except PumpError:
+            self.serialcon.close()
+            raise
+
+        logger_pump.info('%s: created at address %s on %s', self.name,
+                      self.address, self.serialcon.port)
+
 
     def diameter(self):
         pass
@@ -85,6 +107,11 @@ class Pump(Chain):
 
     def start(self):
         self.serialcon.write(str(self.address) + "run\r")
+        resp = self.serialcon.read(17)
+        logger_pump.info(resp)
+
 
     def stop(self):
-        pass
+        self.serialcon.write(str(self.address) + "stp\r")
+        resp = self.serialcon.read(17)
+        logger_pump.info(resp)
