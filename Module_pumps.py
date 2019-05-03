@@ -103,6 +103,7 @@ class Pump(object):
         """ Turns diameter input into a string and change decimals
         separator to ".". Checks if diameter is 0.1 < diameter < 30.0 cm.
         """
+        global dia
         dia = str(diameter).replace(",", ".")
 
         if 0.1 < float(dia) < 30.0:
@@ -127,7 +128,7 @@ class Pump(object):
         """
         # max. volume is calulated the following way: (diameter / 2)**2*pi*60.
         # Hamilton and NormJect syringes' barrel is <= 60 mm long.
-        max_volume = (float(diameter.dia) / 2) ** 2 * math.pi * 60
+        max_volume = (float(dia) / 2) ** 2 * math.pi * 60
         # TODO: check if diameter.dia works
         if max_volume >= volume:
             vol = str(volume).replace(",", ".")
@@ -160,7 +161,7 @@ class Pump(object):
             command = str(self.address) + "rat" + str(rate) + unit
             self.serialcon.write(command + "\r")
             resp = self.serialcon.read(5)
-            if str(self.address) + "?" in resp:
+            if str(self.address) + "S?" in resp:
                 logger_pump.warning("{} {} out of range or command {} incorrect.".format(rate,
                                     unit, command))
                 self.serialcon.close()
@@ -171,7 +172,7 @@ class Pump(object):
             command = str(self.address) + "rat" + str(rate) + unit_replaced
             self.serialcon.write(command + "\r")
             resp = self.serialcon.read(5)
-            if str(self.address) + "?" in resp:
+            if str(self.address) + "S?" in resp:
                 logger_pump.warning("{} {} out of range or command {} incorrect.".format(rate,
                                     unit, command))
                 self.serialcon.close()
@@ -188,7 +189,7 @@ class Pump(object):
         active.
         """
         self.serialcon.write(str(self.address) + "run\r")
-        resp = self.serialcon.read(5)
+        resp = self.serialcon.read(10)
 
         if str(self.address) + "I" in resp:
             logger_pump.info(self.name + ": started.")
