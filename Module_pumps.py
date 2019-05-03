@@ -5,6 +5,7 @@ import serial
 import logging
 import datetime
 import os
+import math
 
 
 # name the logging file
@@ -45,7 +46,9 @@ logger_collector.info("started")
 class Chain(serial.Serial):
     # TODO append carriage return to all commands send via serial
     """
-    describe function of this class
+    Object that holds all the information for establishing a serial connection.
+    It inherits its default values from serial.Serial and changes them in its
+    __init__.
     """
     # configure serial settings and start logging
     def __init__(self, port):
@@ -56,11 +59,11 @@ class Chain(serial.Serial):
         self.flushInput()
 
         logger_pump.info("Chain created on {}. Baudrate: {}".format(port, self.baudrate))
-        logger_pump.debug("Baudrate: {}, byte size: {}, parity: {}, stop bits: {}, timeout {}.".format(self.baudrate, self.bytesize,
-                          self.parity, self.stopbits, self.timeout ))
+        logger_pump.debug("Baudrate: {}, byte size: {}, parity: {}, stop bits: {}, timeout {}.".format(self.baudrate,
+                          self.bytesize, self.parity, self.stopbits, self.timeout))
 
     def serial_read(self):
-        response=port.read(5)
+        response = port.read(5)
         logger_pump.info(response)
 
 
@@ -69,16 +72,15 @@ class PumpError(Exception):
 
 
 class Pump(object):
-    # TODO: Check flowrate ranges of pumps and integrate checks
+    # TODO: Check flow rate ranges of pumps and integrate checks
     # that will throw errors if pump is supposed to pump faster than possible
     """
-    This class holds all functions for HLL pumps.
+    This class holds all functions for HLL pumps. First, name, serial address
+    and serial connection is initialized. Next, the pump is queried to
+    give its software's version to verify established connection. Success or
+    failure is logged and printed to the screen.
     """
     def __init__(self, chain, name, address):
-        # pump needs to be initialized with address and name (optional)
-        # a check needs to be performed to make sure pump is responding
-        # result of this check must be logged and error must be raised
-        # if not responding.
         self.name = name
         self.address = address
         self.serialcon = chain
@@ -103,7 +105,7 @@ class Pump(object):
         """
         dia = str(diameter).replace(",", ".")
 
-        if float(dia) > 0.1 and float(dia) < 30.0:
+        if 0.1 < float(dia) < 30.0:
             self.serialcon.write(str(self.address) + "dia" + dia + "\r")
             resp = self.serialcon.read(5)
 
@@ -115,7 +117,7 @@ class Pump(object):
                 self.serialcon.close()
                 raise PumpError("No response from pump {} at address {}.".format(self.name, self.address))
 
-        else:  # check if function works.
+        else:  # TODO: check if function works.
             logger_pump.warning("Diameter out of range. Accepted values: 0.1 - 30.0 cm. Diameter not set.")
 
     def volume(self, volume):
@@ -123,21 +125,24 @@ class Pump(object):
         and changes decimal separator to ".". Checks if volume is greater
         than syringe volume.
         """
-        vol = str(volume).replace(",", ".")
+        # max. volume is calulated the following way: (diameter / 2)**2*pi*60.
+        # Hamilton and NormJect syringes' barrel is <= 60 mm long.
+        max_volume = (float(diameter.dia) / 2) ** 2 * math.pi * 60
+        # TODO: check if diameter.dia works
+        if max_volume >= volume:
+            vol = str(volume).replace(",", ".")
+            self.serialcon.write(str(self.address) + "vol" + vol + "\r")
+            resp = self.serialcon.read(5)
 
-        self.serialcon.write(str(self.address) + "vol" + vol + "\r")
-        resp = self.serialcon.read(5)
-
-        if str(self.address) + "S" in resp:
-            logger_pump.info(self.name + ": volume set to " + vol + " ??l.")  # ml is also possible!
-
+            if str(self.address) + "S" in resp:
+                logger_pump.info(self.name + ": volume set to " + vol + " ??l.")  # ml is also possible!
+            else:
+                logger_pump.warning(self.name + ": Volume not set.")
+                self.serialcon.close()
+                raise PumpError("No response from pump {} at address {}.".format(self.name, self.address))
         else:
-            logger_pump.warning(self.name + ": Volume not set.")
-            self.serialcon.close()
-            raise PumpError("No response from pump {} at address {}.".format(self.name, self.address))
-        # format input correctly
-        # units: UL ML, set according to current diameter setting
-        # How to check if syringe volume is oor?
+            logger_pump.warning("Volume exceeds syringe volume. Please adjust volume.")
+        # TODO: check if syringe volume is oor?
         # query: command without parameters e.g. 01dia will return diameter
 
     def rate(self, rate, unit):
@@ -149,13 +154,13 @@ class Pump(object):
         units_dict = {"\u03BCl/min": "um", "\u03BCl/m": "um", "\u03BC/min": "um",
                       "ml/min": "mm", "ml/m": "mm", "m/min": "mm",
                       "\u03BCl/h": "uh", "\u03BC/h": "uh",
-                      "ul/h": "uh", "ul/h": "uh",
+                      "ul/h": "uh", "u/h": "uh",
                       "ml/h": "mh", "m/h": "mh"}
         if unit in units_dict.values():
             command = str(self.address) + "rat" + str(rate) + unit
             self.serialcon.write(command + "\r")
             resp = self.serialcon.read(5)
-            if "?" in resp:
+            if str(self.address) + "?" in resp:
                 logger_pump.warning("{} {} out of range or command {} incorrect.".format(rate,
                                     unit, command))
                 self.serialcon.close()
@@ -166,7 +171,7 @@ class Pump(object):
             command = str(self.address) + "rat" + str(rate) + unit_replaced
             self.serialcon.write(command + "\r")
             resp = self.serialcon.read(5)
-            if "?" in resp:
+            if str(self.address) + "?" in resp:
                 logger_pump.warning("{} {} out of range or command {} incorrect.".format(rate,
                                     unit, command))
                 self.serialcon.close()
@@ -175,7 +180,7 @@ class Pump(object):
 
         else:
             logger_pump.warning("Unit not accepted. Possible values:\n",
-                             "um (\u03BCl/min), uh (\u03BCl/h), mm (ml/min), mh (ml/h).")
+                                "um (\u03BCl/min), uh (\u03BCl/h), mm (ml/min), mh (ml/h).")
 
     def start(self):
         """ Starts the pump by issuing a start command. If a program is active on the
@@ -185,7 +190,7 @@ class Pump(object):
         self.serialcon.write(str(self.address) + "run\r")
         resp = self.serialcon.read(5)
 
-        if "I" in resp:
+        if str(self.address) + "I" in resp:
             logger_pump.info(self.name + ": started.")
 
         else:
@@ -202,11 +207,11 @@ class Pump(object):
         resp = self.serialcon.read(5)
         logger_pump.debug(resp)
 
-        if "?" in resp:
+        if str(self.address) + "?" in resp:
             logger_pump.warning(self.name + " did not stop.")
             self.serialcon.close()
             raise PumpError("No response from pump {} at address {}.".format(self.name, self.address))
-        elif "P" in resp:
+        elif str(self.address) + "P" in resp:
             logger_pump.info(self.name + ": paused.")
         else:
             logger_pump.info(self.name + ": stopped.")
