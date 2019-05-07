@@ -7,6 +7,7 @@ import datetime
 import os
 import math
 
+
 # name the logging file
 now = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S_")
 logging_file = now + "experiment_logs.txt"
@@ -75,8 +76,6 @@ class PumpError(Exception):
 
 
 class Pump(object):
-    # TODO: Check flow rate ranges of pumps and integrate checks
-    # that will throw errors if pump is supposed to pump faster than possible
     """
     This class holds all functions for HLL pumps. First, name, serial address
     and serial connection is initialized. Next, the pump is queried to
@@ -88,6 +87,7 @@ class Pump(object):
         self.name = name
         self.address = address
         self.serialcon = chain
+        self.dia = 0
 
         try:
             self.serialcon.write(str(self.address) + 'VER\r')
@@ -107,23 +107,27 @@ class Pump(object):
         """ Turns diameter input into a string and change decimals
         separator to ".". Checks if diameter is 0.1 < diameter < 30.0 cm.
         """
-        global dia  # das ist ziemlich unschoen, weil die Funktion dadurch Nebeneffekte hat. Saueberer ist am Ende return Dia und dan den caller der Methode die Variable setzen lassen
+
         dia = str(diameter).replace(",", ".")
 
-        if 0.1 < float(dia) < 30.0:  # Denkbar waere auch hier mit assert zu arbeiten, dann bricht das Programm halt ab, wenn es nicht irgendwo gecatcht wird (try block oberhalb im stack) aber das kann ja durchaus erwuenscht sein
+        try:
+            assert 0.1 < float(dia) < 30.0  # Denkbar waere auch hier mit assert zu arbeiten, dann bricht das Programm halt ab, wenn es nicht irgendwo gecatcht wird (try block oberhalb im stack) aber das kann ja durchaus erwuenscht sein
             self.serialcon.write(str(self.address) + "dia" + dia + "\r")
             resp = self.serialcon.read(5)
 
             if str(self.address) + "S" in resp:
                 logger_pump.info(self.name + ": diameter set to " + dia + " cm.")
+                self.dia = dia
+                # return dia
 
             else:
                 logger_pump.warning(self.name + ": Diameter not set.")
                 self.serialcon.close()
                 raise PumpError("No response from pump {} at address {}.".format(self.name, self.address))
 
-        else:  # TODO: check if function works.
+        except AssertionError:
             logger_pump.warning("Diameter out of range. Accepted values: 0.1 - 30.0 cm. Diameter not set.")
+            self.serialcon.close()
 
     def volume(self, volume):
         """ Controls the volume to be dispensed. Turns input into strings
@@ -132,6 +136,8 @@ class Pump(object):
         """
         # max. volume is calulated the following way: (diameter / 2)**2*pi*60.
         # Hamilton and NormJect syringes' barrel is <= 60 mm long.
+        # dia = self.diameter(diameter) - so würde es mit return funktionieren, dann müsste ich aber bei jedem call von volume den diameter neu setzen, der ändert sich ja aber nicht ständig. Habs jetzt mit einer neuen variable gelöst. Wie findest du diese Lösung?
+        dia = self.dia
         max_volume = (float(dia) / 2) ** 2 * math.pi * 60
         # TODO: check if diameter.dia works
         if max_volume >= volume:
@@ -162,7 +168,7 @@ class Pump(object):
                       "ul/h": "uh", "u/h": "uh",
                       "ml/h": "mh", "m/h": "mh"}
         if unit in units_dict.values():
-            command = "{}rat{}{}".format(self.address, rate, unit)  # gewoehn dir am besten gleich an, strings immer mit format zu bauen. Ist angenehmer, gerade wenn man dann mit floats arbeitet (angabe der nachkommastellen die gepritnet werden) oder die gleiche var mehrmals im string vorkommt OLD: str(self.address) + "rat" + str(rate) + unit
+            command = "{}rat{}{}".format(self.address, rate, unit)
             self.serialcon.write(command + "\r")
             resp = self.serialcon.read(5)
             if str(self.address) + "S?" in resp:
