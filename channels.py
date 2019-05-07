@@ -7,20 +7,19 @@ class Channel(object):
         """
         :param filename: path to config file
         """
-
-        def _volume_channel(self):  # , section):
+        self.volume_total = 0
+        def _volume_channel():  # , section):
             # volume = self.channel_x[section] * self.channel_y[section] * self.channel_z
-            if self.volume_total:
+            if self.volume_total != 0:
                 return self.volume_total
-
-            interface_volume = (self.inlets_number + self.outlets_number) * math.pi * self.interface_diameter ** 2
-            channel_volume = 0
-            for key in self.channel_x:
-                volume = self.channel_x[key] * self.channel_y[key] * self.channel_z
-                channel_volume += volume
-            total_volume = channel_volume + interface_volume
-            print(total_volume)
-            return total_volume
+            else:
+                interface_volume = (self.inlets_number + self.outlets_number) * math.pi * self.interface_diameter ** 2
+                channel_volume = 0
+                for key in self.channel_x:
+                    volume = self.channel_x[key] * self.channel_y[key] * self.channel_z
+                    channel_volume += volume
+                total_volume = channel_volume + interface_volume
+                return total_volume
 
         self.inlets_number = 0
         self.outlets_number = 0
@@ -100,4 +99,3 @@ class Channel(object):
                             pass
                 else:
                     pass  # warning ausgeben wenn du eigentlich erwartest dass jede zeile geparst wird, aber ist ja vermutlich nicht so
-
