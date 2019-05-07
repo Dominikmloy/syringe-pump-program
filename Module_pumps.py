@@ -7,7 +7,6 @@ import datetime
 import os
 import math
 
-
 # name the logging file
 now = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S_")
 logging_file = now + "experiment_logs.txt"
@@ -50,6 +49,7 @@ class Chain(serial.Serial):
     It inherits its default values from serial.Serial and changes them in its
     __init__.
     """
+
     # configure serial settings and start logging
     def __init__(self, port):
         super(serial.Serial, self).__init__(port=port, baudrate=9600, bytesize=serial.EIGHTBITS,
@@ -60,7 +60,10 @@ class Chain(serial.Serial):
 
         logger_pump.info("Chain created on {}. Baudrate: {}".format(port, self.baudrate))
         logger_pump.debug("Baudrate: {}, byte size: {}, parity: {}, stop bits: {}, timeout {}.".format(self.baudrate,
-                          self.bytesize, self.parity, self.stopbits, self.timeout))
+                                                                                                       self.bytesize,
+                                                                                                       self.parity,
+                                                                                                       self.stopbits,
+                                                                                                       self.timeout))
 
     def serial_read(self):
         response = port.read(5)
@@ -80,6 +83,7 @@ class Pump(object):
     give its software's version to verify established connection. Success or
     failure is logged and printed to the screen.
     """
+
     def __init__(self, chain, name, address):
         self.name = name
         self.address = address
@@ -97,16 +101,16 @@ class Pump(object):
             raise
 
         logger_pump.info('{}: created at address {} on {}.'.format(self.name,
-                         self.address, self.serialcon.port))
+                                                                   self.address, self.serialcon.port))
 
     def diameter(self, diameter):
         """ Turns diameter input into a string and change decimals
         separator to ".". Checks if diameter is 0.1 < diameter < 30.0 cm.
         """
-        global dia
+        global dia  # das ist ziemlich unschoen, weil die Funktion dadurch Nebeneffekte hat. Saueberer ist am Ende return Dia und dan den caller der Methode die Variable setzen lassen
         dia = str(diameter).replace(",", ".")
 
-        if 0.1 < float(dia) < 30.0:
+        if 0.1 < float(dia) < 30.0:  # Denkbar waere auch hier mit assert zu arbeiten, dann bricht das Programm halt ab, wenn es nicht irgendwo gecatcht wird (try block oberhalb im stack) aber das kann ja durchaus erwuenscht sein
             self.serialcon.write(str(self.address) + "dia" + dia + "\r")
             resp = self.serialcon.read(5)
 
@@ -158,23 +162,23 @@ class Pump(object):
                       "ul/h": "uh", "u/h": "uh",
                       "ml/h": "mh", "m/h": "mh"}
         if unit in units_dict.values():
-            command = str(self.address) + "rat" + str(rate) + unit
+            command = "{}rat{}{}".format(self.address, rate, unit)  # gewoehn dir am besten gleich an, strings immer mit format zu bauen. Ist angenehmer, gerade wenn man dann mit floats arbeitet (angabe der nachkommastellen die gepritnet werden) oder die gleiche var mehrmals im string vorkommt OLD: str(self.address) + "rat" + str(rate) + unit
             self.serialcon.write(command + "\r")
             resp = self.serialcon.read(5)
             if str(self.address) + "S?" in resp:
                 logger_pump.warning("{} {} out of range or command {} incorrect.".format(rate,
-                                    unit, command))
+                                                                                         unit, command))
                 self.serialcon.close()
             else:
                 logger_pump.info("{}: Rate set to {} {}".format(self.name, rate, unit))
-        elif unit in units_dict.keys():
+        elif unit in units_dict:
             unit_replaced = units_dict[unit]
             command = str(self.address) + "rat" + str(rate) + unit_replaced
             self.serialcon.write(command + "\r")
             resp = self.serialcon.read(5)
             if str(self.address) + "S?" in resp:
                 logger_pump.warning("{} {} out of range or command {} incorrect.".format(rate,
-                                    unit, command))
+                                                                                         unit, command))
                 self.serialcon.close()
             else:
                 logger_pump.info("{}: Rate set to {} {}".format(self.name, rate, unit))
@@ -195,7 +199,7 @@ class Pump(object):
             logger_pump.info(self.name + ": started.")
 
         else:
-            logger_pump.warning(self.name + ": did not start.")
+            logger_pump.warning(self.name + ": did not start.")  # vll noch resp printen?
             self.serialcon.close()
             raise PumpError("No response from pump {} at address {}.".format(self.name, self.address))
 
@@ -216,7 +220,6 @@ class Pump(object):
             logger_pump.info(self.name + ": paused.")
         else:
             logger_pump.info(self.name + ": stopped.")
-
 
 # TODO
 # find the range the pumps can operate in (diamter & Flow rate)
