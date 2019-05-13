@@ -1,6 +1,8 @@
 import math
 import re
 
+channel_dict = {"Single meander channel": "single_meander.txt",
+                "Double meander channel": "double_meander.txt"}
 
 class Channel(object):
     def __init__(self, filename):
@@ -18,8 +20,8 @@ class Channel(object):
                 for key in self.channel_x:
                     volume = self.channel_x[key] * self.channel_y[key] * self.channel_z
                     channel_volume += volume
-                total_volume = channel_volume + interface_volume
-                return total_volume
+                volume_total = channel_volume + interface_volume
+                return volume_total
 
         self.inlets_number = 0
         self.outlets_number = 0
@@ -28,7 +30,7 @@ class Channel(object):
         self.outlet_diameter = 0
         self.interface_diameter = 0
         self.tubing_x = {"inlet_1-1": 0, "inlet_1-2": 0, "inlet_1-3": 0,
-                         "outlet": 0}
+                         "inlet_2-1": 0, "inlet_2-2": 0, "outlet": 0}
         self.channel_x = {"inlet_1-1-mixing_1": 0, "inlet_1-2-mixing_1": 0,
                           "inlet_1-3-mixing_1": 0, "mixing_1-meander_1": 0,
                           "meander_1:": 0, "meander_1-outlet": 0, "meander_1-mixing_2": 0,
