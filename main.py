@@ -10,23 +10,33 @@ chain = p.Chain("/dev/ttyUSB0")
 syringes = s.Syringes()
 max_flowrate = 1300
 pumps_active = {"LA120": False, "LA122": False, "LA160": False}
+
 rates_LA120 = []
 rates_LA122 = []
 rates_LA160 = []
+
+vol_LA120 = []
+vol_LA122 = []
+vol_LA160 = []
 
 dict_phase_number_LA120 = {}
 dict_phase_number_LA122 = {}
 dict_phase_number_LA160 = {}
 
-pump_configuration_n = {}
+pump_configuration_n = {} # stores number of syringes in each pump
+pump_configuration_syr = {} # stores syringe type in each pump
 dict_rates_pumps = {}
 dict_units_pumps = {}
 
-phn_global= 0
+phn_global = 0
 # channel = c.Channel("single_meander.txt")
 
 # ask user which syringes to use.
 def select_syringe_washing():
+    """
+    This function lets the user choose one of the syringes from the syringes.py
+    module. It is assumed that all inlets are connected to this syringe type.
+    """
     print("Select syringe used for washing:")
     for item in sorted(syringes.syringes):
         print("{}: {}".format(sorted(syringes.syringes).index(item) + 1, item))
@@ -46,6 +56,11 @@ def select_syringe_washing():
 
 # ask user which channel is used.
 def select_channel():
+    """
+    This function lets the user choose on of the channels from the channels.py
+    module. This choice is essential to the program because the channel's
+    properties define number of syringes and volume to be dispensed.
+    """
     print("Select channel:")
     for item in sorted(c.channel_dict):
         print("{}: {}".format(sorted(c.channel_dict).index(item) + 1, item))
@@ -63,7 +78,7 @@ def select_channel():
         print("Please select a number between 1 and {}.".format(len(sorted(c.channel_dict))))
         return select_channel()
 
-
+# can i put this inside of a function and stil access the instances in all the other functions?
 try:
     LA120 = p.Pump(chain, str(sorted(pumps)[0]), str(pumps[sorted(pumps)[0]]))
     pumps_active["LA120"] = True
@@ -84,6 +99,13 @@ except p.PumpError:
                                                                    pumps[sorted(pumps)[2]]))
 
 def washing():
+    """
+    This function needs to be called in the beginning and end of each program to
+    wash the channel. The program assumes that all inlets of the chosen channel
+    from select_channel() are connected to the same syringe type from
+    select_syringe_washing(). Each pump will run with the max.max_flowrate /
+    number of inlets. After washing has finished, syringes need to be changed.
+    """
     number_of_active_pumps = sum(value == True for value in pumps_active.values())
     channel = c.Channel(c.channel_dict[selected_channel])
     volume_tubing_total = 0
@@ -120,16 +142,18 @@ def washing():
         pass
     # TODO: if pumps are starting at different times, put "pump.start()" ans Ende bzw versuche es mit broadcast start.
     # TODO: needs some way to assign a phase number to each step -> list?
-    # TODO: maybe write commands to a list that is written to each pump?
-    # TODO: item number == phase number?
 def select_syringe_mixing():
     pass
     # TODO: hier müssen noch die syringes (v.a. diameters) für den nächsten Schritt eingetragen werden
 
 def ramping ():
-    pump_configuration_n = {} # stores number of syringes in each pump
-    pump_configuration_syr = {} # stores syringe type in each pump
-    pump_max_syr = {"LA120": 2, "LA122": 2, "LA160": 8}
+    """
+    This function asks the configuration of each pump (which syringe?, how many?,
+    final flow rate? [that means what is the flow rate of the first mixing exp?])
+    and ramps each pump's flow rate up (or down) to have each educt at the same
+    time at the mixing zone.
+    """
+    pump_max_syr = {"LA120": 2, "LA122": 2, "LA160": 8} # max number of syringes target pump can hold.
     # get the number of syringes in each pump.
     for key in sorted(pumps_active):
         if pumps_active[key] == True:
@@ -147,6 +171,7 @@ def ramping ():
                 return ramping()
         else:
             pass
+    # get the type of syringes in each pump.
     for key in pump_configuration_n.keys():
         print("Which syringe type is in pump {}?".format(key))
         for syr in sorted(syringes.syringes):
@@ -167,6 +192,7 @@ def ramping ():
         p.logger_pump.info("{} holds {} syringe(s). Type: {}".format(key,
                                                                   pump_configuration_n[key],
                                                                   pump_configuration_syr[key]))
+    # get the volume of each tubing.
     channel = c.Channel(c.channel_dict[selected_channel])
     dict_tubing_volume = {}
     for key in channel.tubing_x.keys():
@@ -174,6 +200,7 @@ def ramping ():
             dict_tubing_volume[key] = channel.volume_tubing(key)
         else:
             pass
+    # get the connection: Which tubing is connected to which pump?
     dict_inlets_pumps = {}
     for inlet in sorted(dict_tubing_volume)[:-1]:
         print("The inlet {} is connected to which pump?".format(inlet))
@@ -200,8 +227,8 @@ def ramping ():
     #     ramping()
         # TODO: ggf besser, für all die einzelnen schritte eine eigene def. zu schreiben und die dann hier nurnoch abzuarbeiten?
     possible_units = ["\u03BCl/min", "\u03BCl/h", "ml/min", "ml/h" ]
-    # dict_rates_pumps = {}
-    # dict_units_pumps = {} # holds name of pumps and their respective units
+    # get the flow rate and its unit that is used for the first mixing experiment.
+    # This FR is the last flow rate of the ramping funciton.
     for pump in sorted(pump_configuration_n):
         print("What is the first flow rate for pump {}?".format(sorted(pump_configuration_n)))
         rate = input("> ").replace(",", ".")
@@ -226,12 +253,7 @@ def ramping ():
                 print("Please select a number between 1 and {}.".format(len(possible_units)))
                 return ramping()
 #start ramping.py
-    rates_LA120 = []
-    rates_LA122 = []
-    rates_LA160 = []
-    vol_LA120 = []
-    vol_LA122 = []
-    vol_LA160 = []
+
     steps = 10
     total_flowrate = 0 # total flowrate: syringes * their flow rates
 
@@ -249,7 +271,8 @@ def ramping ():
     # Zeiten in der mixing zone sind. -> Wenn unterschiedliches volume darauf Hinweise, dass sie gleich lang sein
     # müssen. oder mean fr anpassen über Faktor inlet_1/inlet_2
     ramping_time = channel.volume_tubing("inlet_1-1")/mean_flowrate
-
+    # decide if ramping increases flow rate or decreases flow rate to reach the final flow rate
+    # append the flow rate to the flow rate list for each step
     for key in dict_rates_pumps.keys():
         if "LA120" in key:
             if dict_rates_pumps[key] > total_flowrate / sum(pump_configuration_n.values()):
@@ -289,7 +312,7 @@ def ramping ():
                     pass
         else:
             pass
-    # calculate volume per step and write it to pump
+    # calculate volume per step and write it into a list
     time_per_step = ramping_time / steps # make sure, that this has the same time unit as rate
     if len(rates_LA120) > 0:
         for rate in rates_LA120:
@@ -306,7 +329,7 @@ def ramping ():
             vol_LA160.append(round(rate * time_per_step, 3))
     else:
         pass
-
+    # write rate and volume to target pump and store rate and associated phase number in dict.
     if len(rates_LA120) > 0 and len(vol_LA120) > 0:
         dict_phase_number_LA120 = {}
         for rate in rates_LA120:
@@ -314,20 +337,20 @@ def ramping ():
             dict_phase_number_LA120[phn_LA120] = rate
             LA120.phase_number(phn_LA120)
             LA120.rate(rate, dict_units_pumps["LA120"])
-            LA120.phase_number(phn_LA120) # ist das notwendig?
             LA120.volume(vol_LA120[rates_LA120.index(rate)])
-        if phn_global== 0:
-            phn_global= len(dict_phase_number_LA120)
-        elif phn_global!= 0 and phn_global!= len(dict_phase_number_LA120):
-            p.logger_pump.warning("Global phase number ({}) is different from LA120's phase number ({})".format(phn, len(dict_phase_number_LA120)))
-        else:
-            pass
+        # I am not sure if I need the following lines.
+        # if phn_global == 0:
+        #     phn_global= len(dict_phase_number_LA120)
+        # elif phn_global!= 0 and phn_global!= len(dict_phase_number_LA120):
+        #     p.logger_pump.warning("Global phase number ({}) is different from LA120's phase number ({})".format(phn, len(dict_phase_number_LA120)))
+        # else:
+        #     pass
         p.logger_pump.info("Pump LA120 ramps from {} to {} {} in {} s.".format(
                            rates_LA120[0], rates_LA120[-1],
                            dict_units_pumps["LA120"], round(ramping_time*3600, 1))) # sollte ramping time oben in sekunden geändert werden, bitte hier 3600 entfernen.
     else:
-        pass
-
+        passLA120.
+    # write rate and volume to target pump and store rate and associated phase number in dict.
     if len(rates_LA122) > 0 and len(vol_LA122) > 0:
         dict_phase_number_LA122 = {}
         for rate in rates_LA122:
@@ -337,12 +360,12 @@ def ramping ():
             LA122.rate(rate, dict_units_pumps["LA122"])
             LA122.phase_number(phn_LA122) # ist das notwendig?
             LA122.volume(vol_LA122[rates_LA122.index(rate)])
-        if phn_global== 0:
-            phn_global= len(dict_phase_number_LA122)
-        elif phn_global!= 0 and phn_global!= len(dict_phase_number_LA122):
-            p.logger_pump.warning("Global phase number ({}) is different from LA122's phase number ({})".format(phn, len(dict_phase_number_LA122)))
-        else:
-            pass
+        # if phn_global== 0:
+        #     phn_global= len(dict_phase_number_LA122)
+        # elif phn_global!= 0 and phn_global!= len(dict_phase_number_LA122):
+        #     p.logger_pump.warning("Global phase number ({}) is different from LA122's phase number ({})".format(phn, len(dict_phase_number_LA122)))
+        # else:
+        #     pass
         p.logger_pump.info("Pump LA122 ramps from {} to {} {} in {} s.".format(
                            rates_LA122[0], rates_LA122[-1],
                            dict_units_pumps["LA122"], round(ramping_time*3600, 1))) # sollte ramping time oben in sekunden geändert werden, bitte hier 3600 entfernen.
@@ -358,12 +381,12 @@ def ramping ():
             LA160.rate(rate, dict_units_pumps["LA160"])
             LA160.phase_number(phn_LA160) # ist das notwendig?
             LA160.volume(vol_LA160[rates_LA160.index(rate)])
-        if phn_global== 0:
-            phn_global= len(dict_phase_number_LA160)
-        elif phn_global!= 0 and phn_global!= len(dict_phase_number_LA160):
-            p.logger_pump.warning("Global phase number ({}) is different from LA160's phase number ({})".format(phn, len(dict_phase_number_LA160)))
-        else:
-            pass
+        # if phn_global== 0:
+        #     phn_global= len(dict_phase_number_LA160)
+        # elif phn_global!= 0 and phn_global!= len(dict_phase_number_LA160):
+        #     p.logger_pump.warning("Global phase number ({}) is different from LA160's phase number ({})".format(phn, len(dict_phase_number_LA160)))
+        # else:
+        #     pass
         p.logger_pump.info("Pump LA160 ramps from {} to {} {} in {} s.".format(
                            rates_LA160[0], rates_LA160[-1],
                            dict_units_pumps["LA160"], round(ramping_time*3600, 1))) # sollte ramping time oben in sekunden geändert werden, bitte hier 3600 entfernen.
