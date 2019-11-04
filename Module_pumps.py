@@ -6,6 +6,7 @@ import logging
 import datetime
 import os
 import math
+import time
 
 
 # name the logging file
@@ -54,7 +55,7 @@ class Chain(serial.Serial):
     # configure serial settings and start logging
     def __init__(self, port):
         super(serial.Serial, self).__init__(port=port, baudrate=9600, bytesize=serial.EIGHTBITS,
-                                            parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=2)
+                                            parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1)
 
         self.flushOutput()
         self.flushInput()
@@ -67,7 +68,7 @@ class Chain(serial.Serial):
                                                                                                        self.timeout))
 
     def serial_read(self):
-        response = self.port.read(5)
+        response = self.port.read(10)
         logger_pump.info(response)
 
 
@@ -91,18 +92,20 @@ class Pump(object):
         self.status = False
 
         try:
-            command = "{}{}".format(str(self.address), 'VER\r')
+            command = "{}{}".format(str(self.address), '?\r')
+            logger_pump.debug(command)
             self.serialcon.write(command.encode())
             resp = self.serialcon.read(17).decode()
-            logger_pump.debug(resp)
+            logger_pump.debug("{}: command: {}, response: {}".format(self.name, command, resp))
 
-            if resp[1:3] != str(self.address):
-                self.status = False
-                raise PumpError("No response from pump {} at address {}.".format(self.name, self.address))
-            else:
+            if self.address in resp:
                 self.status = True
                 logger_pump.info('{}: created at address {} on {}.'.format(self.name,
                                                                            self.address, self.serialcon.port))
+            else:
+                self.status = False
+                raise PumpError("No response from pump {} at address {}.".format(self.name, self.address))
+
         except PumpError:
             # self.serialcon.close()
             raise
@@ -125,8 +128,8 @@ class Pump(object):
             # ja durchaus erwuenscht sein
             command = "{}dia{}\r".format(str(self.address), dia)
             self.serialcon.write(command.encode())
-            resp = self.serialcon.read(5).decode()
-            logger_pump.debug("{}: response func. write dia: {}".format(self.name,resp))
+            resp = self.serialcon.read(10).decode()
+            logger_pump.debug("{}: command: {}, response: {}".format(self.name, command, resp))
 
             if str(self.address) + "S" in resp:
                 logger_pump.info(self.name + ": diameter set to " + dia + " cm.")
@@ -165,14 +168,15 @@ class Pump(object):
             vol = str(volume).replace(",", ".")
             command = "{}vol{}\r".format(str(self.address), vol)
             self.serialcon.write(command.encode())
-            resp = self.serialcon.read(7).decode()
-            logger_pump.debug("{} response volume: {}".format(self.name, resp))
+            resp = self.serialcon.read(10).decode()
+            logger_pump.debug("{}: command: {}, response: {}".format(self.name, command, resp))
 
             if str(self.address) in resp and "?" in resp or "NA" in resp:
                 i = 3
                 while i > 0:
                     self.serialcon.write(command.encode())
-                    resp = self.serialcon.read(7).decode()
+                    resp = self.serialcon.read(10).decode()
+                    logger_pump.debug("{}: command: {}, response: {}".format(self.name, command, resp))
                     if str(self.address) in resp and "?" in resp or "NA" in resp:
                         i -= 1
                     else:
@@ -198,8 +202,8 @@ class Pump(object):
         # set phase function to 'rate' (otherwise setting vol and rate commands do not work.
         command = "{}funrat\r".format(str(self.address))
         self.serialcon.write(command.encode())
-        resp = self.serialcon.read(7).decode()
-        logger_pump.debug("{} response func.rate: {}".format(self.name, resp))
+        resp = self.serialcon.read(10).decode()
+        logger_pump.debug("{}: command: {}, response: {}".format(self.name, command, resp))
 
         if str(self.address) in resp and "?" in resp or "NA" in resp:
             logger_pump.warning("{}: Could not set phase function to 'rate'".format(self.name))
@@ -217,14 +221,15 @@ class Pump(object):
         if unit in units_dict.values():
             command = "{}rat{}{}\r".format(str(self.address), rate, unit)
             self.serialcon.write(command.encode())
-            resp = self.serialcon.read(7).decode()
-            logger_pump.debug("{} response rate: {}".format(self.name, resp))
+            resp = self.serialcon.read(10).decode()
+            logger_pump.debug("{}: command: {}, response: {}".format(self.name, command, resp))
 
             if str(self.address) in resp and "?" in resp or "NA" in resp:
                 i = 3
                 while i > 0:
                     self.serialcon.write(command.encode())
-                    resp = self.serialcon.read(7).decode()
+                    resp = self.serialcon.read(10).decode()
+                    logger_pump.debug("{}: command: {}, response: {}".format(self.name, command, resp))
                     if str(self.address) in resp and "?" in resp or "NA" in resp:
                         i -= 1
                     else:
@@ -240,8 +245,8 @@ class Pump(object):
             unit_replaced = units_dict[unit]
             command = "{}rat{}{}\r".format(str(self.address), str(rate), unit_replaced)
             self.serialcon.write(command.encode())
-            resp = self.serialcon.read(7).decode()
-            logger_pump.debug("{} response rate: {}".format(self.name, resp))
+            resp = self.serialcon.read(10).decode()
+            logger_pump.debug("{}: command: {}, response: {}".format(self.name, command, resp))
 
             if str(self.address) in resp and "?" in resp or "NA" in resp:
                 i = 3
@@ -249,8 +254,8 @@ class Pump(object):
                 while i > 0:
                     print("reached if str(self.address) in resp and '?' in resp: - while loop")
                     self.serialcon.write(command.encode())
-                    resp = self.serialcon.read(7).decode()
-                    logger_pump.debug("{} response rate: {}".format(self.name, resp))
+                    resp = self.serialcon.read(10).decode()
+                    logger_pump.debug("{}: command: {}, response: {}".format(self.name, command, resp))
                     if str(self.address) in resp and "?" in resp or "NA" in resp:
                         i -= 1
                     else:
@@ -277,14 +282,14 @@ class Pump(object):
         """
         command = "{}phn{}\r".format(str(self.address), number)
         self.serialcon.write(command.encode())
-        resp = self.serialcon.read(7).decode()
-        logger_pump.debug("{} response phase number: {}".format(self.name, resp))
+        resp = self.serialcon.read(10).decode()
+        logger_pump.debug("{}: command: {}, response: {}".format(self.name, command, resp))
 
         if str(self.address) in resp and "?" in resp or "NA" in resp:
             i = 3
             while i > 0:
                 self.serialcon.write(command.encode())
-                resp = self.serialcon.read(7).decode()
+                resp = self.serialcon.read(10).decode()
                 if str(self.address) in resp and "?" in resp or "NA" in resp:
                     i -= 1
                 else:
@@ -307,8 +312,8 @@ class Pump(object):
         """
         command = "{}run\r".format(str(self.address))
         self.serialcon.write(command.encode())
-        resp = self.serialcon.read(7).decode()
-        logger_pump.debug(resp)
+        resp = self.serialcon.read(10).decode()
+        logger_pump.debug("{}: command: {}, response: {}".format(self.name, command, resp))
 
         if str(self.address) + "I" in resp:
             logger_pump.info(self.name + ": started.")
@@ -324,26 +329,31 @@ class Pump(object):
         """
         command = "*run\r"
         self.serialcon.write(command.encode())
+        time.sleep(0.5)
+        self.serialcon.reset_input_buffer()
         if pumps_active["LA120"]:  # pumps_active from main.py
-            command = "{}?".format(pumps_adr["LA120"])
+            command = "{}?\r".format(pumps_adr["LA120"])
             self.serialcon.write(command.encode())
-            resp = self.serialcon.read(7).decode()
+            resp = self.serialcon.read(10).decode()
+            logger_pump.debug("{}: command: {}, response: {}".format(self.name, command, resp))
             if "{}{}".format(pumps_adr["LA120"], "I") in resp:
                 logger_pump.info("LA120: started.")
             else:
                 logger_pump.warning("LA120 did not start!")
         if pumps_active["LA122"]:
-            command = "{}?".format(pumps_adr["LA122"])
+            command = "{}?\r".format(pumps_adr["LA122"])
             self.serialcon.write(command.encode())
-            resp = self.serialcon.read(7).decode()
+            resp = self.serialcon.read(10).decode()
+            logger_pump.debug("{}: command: {}, response: {}".format(self.name, command, resp))
             if "{}{}".format(pumps_adr["LA122"], "I") in resp:
                 logger_pump.info("LA122: started.")
             else:
                 logger_pump.warning("LA122 did not start!")
         if pumps_active["LA160"]:
-            command = "{}?".format(pumps_adr["LA160"])
+            command = "{}?\r".format(pumps_adr["LA160"])
             self.serialcon.write(command.encode())
-            resp = self.serialcon.read(7).decode()
+            resp = self.serialcon.read(10).decode()
+            logger_pump.debug("{}: command: {}, response: {}".format(self.name, command, resp))
             if "{}{}".format(pumps_adr["LA160"], "I") in resp:
                 logger_pump.info("LA160: started.")
             else:
@@ -356,15 +366,15 @@ class Pump(object):
         """
         command = "{}stp\r".format(str(self.address))
         self.serialcon.write(command.encode())
-        resp = self.serialcon.read(5).decode()
-        logger_pump.debug(resp)
+        resp = self.serialcon.read(10).decode()
+        logger_pump.debug("{}: command: {}, response: {}".format(self.name, command, resp))
 
         if str(self.address) in resp and "?" in resp:
             i = 3
             while i > 0:
                 self.serialcon.write(command.encode())
-                resp = self.serialcon.read(7).decode()
-                logger_pump.debug(resp)
+                resp = self.serialcon.read(10).decode()
+                logger_pump.debug("{}: command: {}, response: {}".format(self.name, command, resp))
                 if str(self.address) in resp and "?" in resp or "NA" in resp:
                     i -= 1
                 elif str(self.address) + "P" in resp:
@@ -374,8 +384,7 @@ class Pump(object):
                     logger_pump.info(self.name + ": stopped.")
                     break
             if i == 0:
-                logger_pump.warning("Phase number {} out of range or command {} incorrect.".format(number,
-                                                                                                   command))
+                logger_pump.warning("Phase number out of range or command {} incorrect.".format(command))
                 logger_pump.warning(self.name + " did not stop.")
                 self.serialcon.close()
                 raise PumpError("No response from pump {} at address {}.".format(self.name, self.address))
@@ -390,10 +399,12 @@ class Pump(object):
         """
         command = "*stp\r"
         self.serialcon.write(command.encode())
+        self.serialcon.reset_input_buffer()
         if pumps_active["LA120"]:  # pumps_active from main.py
-            command = "{}?".format(pumps["LA120"])
+            command = "{}?\r".format(pumps["LA120"])
             self.serialcon.write(command.encode())
-            resp = self.serialcon.read(7).decode()
+            resp = self.serialcon.read(10).decode()
+            logger_pump.debug("{}: command: {}, response: {}".format(self.name, command, resp))
             if "{}{}".format(pumps["LA120"], "P") in resp:
                 logger_pump.info("LA120: paused.")
             elif "{}{}".format(pumps["LA120"], "S") in resp:
@@ -401,9 +412,10 @@ class Pump(object):
             else:
                 logger_pump.warning("LA120 did not stop!")
         if pumps_active["LA122"]:
-            command = "{}?".format(pumps["LA122"])
+            command = "{}?\r".format(pumps["LA122"])
             self.serialcon.write(command.encode())
-            resp = self.serialcon.read(7).decode()
+            resp = self.serialcon.read(10).decode()
+            logger_pump.debug("{}: command: {}, response: {}".format(self.name, command, resp))
             if "{}{}".format(pumps["LA122"], "P") in resp:
                 logger_pump.info("LA122: paused.")
             elif "{}{}".format(pumps["LA122"], "S") in resp:
@@ -411,9 +423,10 @@ class Pump(object):
             else:
                 logger_pump.warning("LA122 did not stop!")
         if pumps_active["LA160"]:
-            command = "{}?".format(pumps["LA160"])
+            command = "{}?\r".format(pumps["LA160"])
             self.serialcon.write(command.encode())
-            resp = self.serialcon.read(7).decode()
+            resp = self.serialcon.read(10).decode()
+            logger_pump.debug("{}: command: {}, response: {}".format(self.name, command, resp))
             if "{}{}".format(pumps["LA160"], "P") in resp:
                 logger_pump.info("LA160: paused.")
             elif "{}{}".format(pumps["LA160"], "S") in resp:

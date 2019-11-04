@@ -14,7 +14,7 @@ phase_number = setup.GlobalPhaseNumber()
 pumps_setup = setup.Setup(pumps)
 pumps_setup.select_syringe_washing()
 pumps_setup.select_channel()
-#pumps_setup.washing()
+pumps_setup.washing()
 #LA160=pumps_setup.dict_pump_instances["LA160"]
 #LA160.start()
 #setup.countdown(5, "wait")

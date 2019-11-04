@@ -157,7 +157,7 @@ class Ramping(object):
         each pump that is used for the first mixing cycle. These rates
         serve as anchor points the ramping function will ramp up or down to."""
         for pump in sorted(self.pump_configuration_n):
-            print("What is the first flow rate for pump {}?".format(sorted(self.pump_configuration_n)))
+            print("What is the first flow rate for pump {}?".format(pump))
             rate = input("> ").replace(",", ".")
             try:
                 self.dict_rates_pumps[pump] = float(rate)
@@ -202,11 +202,12 @@ class Ramping(object):
         ramping_list = [self.total_flowrate * 0.25]
         while len(ramping_list) < self.steps:
             ramping_list.append(ramping_list[-1] + (highest_rate - ramping_list[0])/9)
-        self.mean_flowrate = sum(ramping_list)/float(len(ramping_list))
+        self.mean_flowrate = 350  # former code: sum(ramping_list)/float(len(ramping_list))
+        # problem: intermediate flowrates too high.
         # TODO: hier muss ich mir die Einheiten aus dict_units_pumps besorgen und daraus dann die Dauer in Sekunden Berechnen.
-        # ggf. in Abhängigkeit von tubing volume? Hätte dann aber den Nachteil, dass die Rektanten zu unterschiedlichen
-        # Zeiten in der mixing zone sind. -> Wenn unterschiedliches volume darauf Hinweise, dass sie gleich lang sein
-        # müssen. oder mean fr anpassen über Faktor inlet_1/inlet_2
+        # todo: ggf. in Abhängigkeit von tubing volume? Hätte dann aber den Nachteil, dass die Rektanten zu unterschiedlichen
+        # todo: Zeiten in der mixing zone sind. -> Wenn unterschiedliches volume darauf Hinweise, dass sie gleich lang sein
+        # todo: müssen. oder mean fr anpassen über Faktor inlet_1/inlet_2
         self.ramping_time = channel.volume_tubing("inlet_1-1")/self.mean_flowrate * 3600
         p.logger_pump.debug("Mean flow rate: {}".format(self.mean_flowrate))
         p.logger_pump.debug("Total flow rate: {}".format(self.total_flowrate))
@@ -229,7 +230,7 @@ class Ramping(object):
                         while len(self.rates_LA120) < self.steps:
                             self.rates_LA120.append(round(self.rates_LA120[-1] + (self.dict_rates_pumps[key] -
                                                                                   self.rates_LA120[0])/9, 3))
-                p.logger_pump.debug("Ramping rates LA120:", ", ".join(str(x) for x in self.rates_LA120))
+                p.logger_pump.debug("Ramping rates LA120: {}".format(", ".join(str(x) for x in self.rates_LA120)))
 
             elif "LA122" in key:
                 if self.dict_rates_pumps[key] > self.total_flowrate / sum(self.pump_configuration_n.values()):
@@ -243,7 +244,7 @@ class Ramping(object):
                         while len(self.rates_LA122) < self.steps:
                             self.rates_LA122.append(round(self.rates_LA122[-1] + (self.dict_rates_pumps[key] -
                                                                                   self.rates_LA122[0])/9, 3))
-                p.logger_pump.debug("Ramping rates LA122:", ", ".join(str(x) for x in self.rates_LA122))
+                p.logger_pump.debug("Ramping rates LA122: {}".format(", ".join(str(x) for x in self.rates_LA122)))
 
             elif "LA160" in key:
                 if self.dict_rates_pumps[key] > self.total_flowrate / sum(self.pump_configuration_n.values()):
@@ -257,18 +258,18 @@ class Ramping(object):
                         while len(self.rates_LA160) < self.steps:
                             self.rates_LA160.append(round(self.rates_LA160[-1] + (self.dict_rates_pumps[key] -
                                                                                   self.rates_LA160[0])/9, 3))
-                p.logger_pump.debug("Ramping rates LA160: {}".format(", ".join(str(x) for x in self.rates_LA160))) # todo die anderen auch noch umschreiben
+                p.logger_pump.debug("Ramping rates LA160: {}".format(", ".join(str(x) for x in self.rates_LA160)))
 
         # calculate volume per step and write it into a list
         self.time_per_step = self.ramping_time / self.steps  # todo make sure, that this has the same time unit as rate
         if len(self.rates_LA120) > 0:
-            if "h" in self.dict_rates_pumps["LA120"]:
+            if "h" in self.dict_units_pumps["LA120"]:
                 for rate in self.rates_LA120:
                     self.vol_LA120.append(round(rate * self.time_per_step / 3600, 3))
-            elif "min" in self.dict_rates_pumps["LA120"]:
+            elif "min" in self.dict_units_pumps["LA120"]:
                 for rate in self.rates_LA120:
                     self.vol_LA120.append(round(rate * self.time_per_step / 60, 3))
-            p.logger_pump.debug("Ramping volumes LA120:", ", ".join(str(x) for x in self.vol_LA120))
+            p.logger_pump.debug("Ramping volumes LA120: {}".format(", ".join(str(x) for x in self.vol_LA120)))
 
         if len(self.rates_LA122) > 0:
             if "h" in self.dict_units_pumps["LA122"]:
@@ -277,7 +278,7 @@ class Ramping(object):
             elif "min" in self.dict_units_pumps["LA122"]:
                 for rate in self.rates_LA122:
                     self.vol_LA122.append(round(rate * self.time_per_step / 60, 3))
-            p.logger_pump.debug("Ramping volumes LA122:", ", ".join(str(x) for x in self.vol_LA122))
+            p.logger_pump.debug("Ramping volumes LA122: {}".format(", ".join(str(x) for x in self.vol_LA122)))
 
         if len(self.rates_LA160) > 0:
             if "h" in self.dict_units_pumps["LA160"]:
@@ -299,15 +300,15 @@ class Ramping(object):
             if len(self.rates_LA120) > 0:
                 LA120.phase_number(phn)
                 LA120.rate(self.rates_LA120[phn - 1], self.dict_units_pumps["LA120"])
-                LA120.volume(self.vol_LA120[phn - 1], self.dict_units_pumps["LA120"])
+                LA120.volume(self.vol_LA120[phn - 1], self.dict_units_pumps["LA120"][:2])
             if len(self.rates_LA122) > 0:
                 LA122.phase_number(phn)
                 LA122.rate(self.rates_LA122[phn - 1], self.dict_units_pumps["LA122"])
-                LA122.volume(self.vol_LA122[phn - 1], self.dict_units_pumps["LA122"])
+                LA122.volume(self.vol_LA122[phn - 1], self.dict_units_pumps["LA122"][:2])
             if len(self.rates_LA160) > 0:
                 LA160.phase_number(phn)
                 LA160.rate(self.rates_LA160[phn - 1], self.dict_units_pumps["LA160"])
-                LA160.volume(self.vol_LA160[phn - 1], self.dict_units_pumps["LA160"])
+                LA160.volume(self.vol_LA160[phn - 1], self.dict_units_pumps["LA160"][:2])
         pump_rates_list = []
         for pump in self.pump_configuration_n.keys():
             string = str(self.dict_rates_pumps[pump]) + ' ' + self.dict_units_pumps[pump]

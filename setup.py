@@ -11,6 +11,7 @@ def countdown(t, name):
         print("{}: {}".format(name, timeformat), end= '\r')
         time.sleep(1)
         t -= 1
+    print("\n")
 
 
 class GlobalPhaseNumber(object):
@@ -125,17 +126,17 @@ class Setup(object):
 
         if self.pumps_active["LA120"]:
             self.LA120.diameter(self.syringes.syringes[self.syringe_washing])
-            self.LA120.volume(volume_per_syr, "ul/h")
+            self.LA120.volume(volume_per_syr, "ul")
             self.LA120.rate(rate, "ul/h")
 
         if self.pumps_active["LA122"]:
             self.LA122.diameter(self.syringes.syringes[self.syringe_washing])
-            self.LA122.volume(volume_per_syr, "ul/h")
+            self.LA122.volume(volume_per_syr, "ul")
             self.LA122.rate(rate, "ul/h")
     
         if self.pumps_active["LA160"]:
             self.LA160.diameter(self.syringes.syringes[self.syringe_washing])
-            self.LA160.volume(volume_per_syr, "ul/h")
+            self.LA160.volume(volume_per_syr, "ul")
             self.LA160.rate(rate, "ul/h")
         # the start command is issued separately because pumps will not start at the same time otherwise.
         if self.pumps_active["LA120"]:

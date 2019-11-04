@@ -288,69 +288,75 @@ class Mixing(object):
         """ This functions asks which pumps should be used to transport
         the product of the final mixing step to the outlet.
         """
-        pumps_end_process = []
-        volume = channels_instance.channel_volume + channels_instance.volume_tubing("outlet")
-        print("""Which pump(s) will pump the product of the final mixing
-        run ({} \u03BCl)?
-        Choose one or more numbers:""".format(volume))
-        if pumps_active["LA120"]:
-            print("1: LA120")
-        if pumps_active["LA122"]:
-            print("2: LA122")
-        if pumps_active["LA160"]:
-            print("3: LA160")
-        user_input = input("> ")
-        if "1" in user_input:
-            pumps_end_process.append("LA120")
-        if "2" in user_input:
-            pumps_end_process.append("LA122")
-        if "3" in user_input:
-            pumps_end_process.append("LA160")
-        if "1" not in user_input and "2" not in user_input and "3" not in user_input:
-            print("Please choose a number.")
-            return self.end_process(channels_instance, pumps_active)
-        p.logger_pump.info("""The following pumps will pump the
-                           final product: {}""".format(", ".join(pumps_end_process)))
-        # calculate relative flow rates and add them to
-        # dict_last_flowrate and dict_last_volume.
-        last_flowrate = []
-        if self.rates_LA120:
-            last_flowrate.append(self.rates_LA120[-1] *
-                                 self.pump_configuration_n["LA120"])
-        if self.rates_LA122:
-            last_flowrate.append(self.rates_LA122[-1] *
-                                 self.pump_configuration_n["LA122"])
-        if self.rates_LA160:
-            last_flowrate.append(self.rates_LA160[-1] *
-                                 self.pump_configuration_n["LA160"])
-        last_flowrate_sum = sum(last_flowrate)
-        rate_per_pump = last_flowrate_sum / len(pumps_end_process)
-        # write the time for flushing the final product from the channel
-        # to self.end_time.
-        time_sec = volume / last_flowrate_sum
-        if "h" in self.dict_units_pumps.values():
-            time_sec = round(time_sec * 3600)
-        elif "min" in self.dict_units_pumps.values():
-            time_sec = round(time_sec * 60)
-        self.end_time = time_sec
-        # calculate relative flow rates and volumes and store them
-        # in the respective dicts
-        if "LA120" in pumps_end_process:
-            self.dict_last_flowrate["LA120"] = (rate_per_pump /
-                                                self.pump_configuration_n["LA120"]
-                                                )
-            self.dict_last_volume["LA120"] = (volume / len(pumps_end_process))
+        print("Do you want to pump the product of the final mixing run into the collector?")
+        answer = input("> ")
+        if "y" in answer.lower():
+            pumps_end_process = []
+            volume = channels_instance.channel_volume + channels_instance.volume_tubing("outlet")
+            print("""Which pump(s) will pump the product of the final mixing
+            run ({} \u03BCl)?
+            Choose one or more numbers:""".format(volume))
+            if pumps_active["LA120"]:
+                print("1: LA120")
+            if pumps_active["LA122"]:
+                print("2: LA122")
+            if pumps_active["LA160"]:
+                print("3: LA160")
+            user_input = input("> ")
+            if "1" in user_input:
+                pumps_end_process.append("LA120")
+            if "2" in user_input:
+                pumps_end_process.append("LA122")
+            if "3" in user_input:
+                pumps_end_process.append("LA160")
+            if str(user_input) not in "123":
+                print("Please choose a number.")
+                return self.end_process(channels_instance, pumps_active)
+            p.logger_pump.info("""The following pumps will pump the
+                               final product: {}""".format(", ".join(pumps_end_process)))
+            # calculate relative flow rates and add them to
+            # dict_last_flowrate and dict_last_volume.
+            last_flowrate = []
+            if self.rates_LA120:
+                last_flowrate.append(self.rates_LA120[-1] *
+                                     self.pump_configuration_n["LA120"])
+            if self.rates_LA122:
+                last_flowrate.append(self.rates_LA122[-1] *
+                                     self.pump_configuration_n["LA122"])
+            if self.rates_LA160:
+                last_flowrate.append(self.rates_LA160[-1] *
+                                     self.pump_configuration_n["LA160"])
+            last_flowrate_sum = sum(last_flowrate)
+            rate_per_pump = last_flowrate_sum / len(pumps_end_process)
+            # write the time for flushing the final product from the channel
+            # to self.end_time.
+            time_sec = volume / last_flowrate_sum
+            if "h" in self.dict_units_pumps.values():
+                time_sec = round(time_sec * 3600)
+            elif "min" in self.dict_units_pumps.values():
+                time_sec = round(time_sec * 60)
+            self.end_time = time_sec
+            # calculate relative flow rates and volumes and store them
+            # in the respective dicts
+            if "LA120" in pumps_end_process:
+                self.dict_last_flowrate["LA120"] = (rate_per_pump /
+                                                    self.pump_configuration_n["LA120"]
+                                                    )
+                self.dict_last_volume["LA120"] = (volume / len(pumps_end_process) /
+                                                  self.pump_configuration_n["LA120"])
 
-        if "LA122" in pumps_end_process:
-            self.dict_last_flowrate["LA122"] = (rate_per_pump /
-                                                self.pump_configuration_n["LA122"]
-                                                )
-            self.dict_last_volume["LA122"] = (volume / len(pumps_end_process))
-        if "LA160" in pumps_end_process:
-            self.dict_last_flowrate["LA160"] = (rate_per_pump /
-                                                self.pump_configuration_n["LA160"]
-                                                )
-            self.dict_last_volume["LA160"] = (volume / len(pumps_end_process))
+            if "LA122" in pumps_end_process:
+                self.dict_last_flowrate["LA122"] = (rate_per_pump /
+                                                    self.pump_configuration_n["LA122"]
+                                                    )
+                self.dict_last_volume["LA122"] = (volume / len(pumps_end_process) /
+                                                  self.pump_configuration_n["LA122"])
+            if "LA160" in pumps_end_process:
+                self.dict_last_flowrate["LA160"] = (rate_per_pump /
+                                                    self.pump_configuration_n["LA160"]
+                                                    )
+                self.dict_last_volume["LA160"] = (volume / len(pumps_end_process) /
+                                                  self.pump_configuration_n["LA160"])
 
     def writing(self, pumps_instances_dict, channels_instance, pumps_active, global_phase_number):
         """ Asks for overlap and writes the rates and volumes to the pumps
@@ -401,24 +407,24 @@ class Mixing(object):
                 pump1 = "{}: {} {}, {} {}".format("LA120",
                                                   self.rates_LA120[i],
                                                   self.dict_units_pumps["LA120"],
-                                                  self.volumes_LA120[i],
+                                                  round(self.volumes_LA120[i], 2),
                                                   self.dict_units_pumps["LA120"][:2]
                                                   )
             if "LA122" in self.pump_configuration_n.keys():
                 pump2 = "{}: {} {}, {} {}".format("LA122",
                                                   self.rates_LA122[i],
                                                   self.dict_units_pumps["LA122"],
-                                                  self.volumes_LA122[i],
+                                                  round(self.volumes_LA122[i], 2),
                                                   self.dict_units_pumps["LA122"][:2]
                                                   )
             if "LA160" in self.pump_configuration_n.keys():
                 pump3 = "{}: {} {}, {} {}".format("LA160",
                                                   self.rates_LA160[i],
                                                   self.dict_units_pumps["LA160"],
-                                                  self.volumes_LA160[i],
+                                                  round(self.volumes_LA160[i], 2),
                                                   self.dict_units_pumps["LA160"][:2]
                                                   )
-            p.logger_pump.info("Run {}:\n{}.\n{}.\n{}.\n".format(i+1, pump1, pump2, pump3))
+            p.logger_pump.info("{}:\n{}.\n{}.\n{}.\n".format(self.name[i], pump1, pump2, pump3))
             # insert end volume and rate into the pumping program
         phn = global_phase_number.next()  # returns the current phase number and adds 1
         pump1_end = ""
@@ -429,19 +435,19 @@ class Mixing(object):
             LA120.rate(self.dict_last_flowrate["LA120"], self.dict_units_pumps["LA120"])
             LA120.volume(self.dict_last_volume["LA120"], self.dict_units_pumps["LA120"][:2])
             pump1_end = "{}: {} {}, {} {}".format("LA120",
-                                                  self.dict_last_flowrate["LA120"],
+                                                  round(self.dict_last_flowrate["LA120"]),
                                                   self.dict_units_pumps["LA120"],
-                                                  self.dict_last_volume["LA120"],
+                                                  round(self.dict_last_volume["LA120"]),
                                                   self.dict_units_pumps["LA120"][:2]
                                                   )
         if "LA122" in self.dict_last_flowrate.keys():
             LA122.phase_number(phn)
             LA122.rate(self.dict_last_flowrate["LA122"], self.dict_units_pumps["LA122"])
-            LA122.volume(self.dict_last_volume["LA122"],self.dict_units_pumps["LA122"][:2])
+            LA122.volume(self.dict_last_volume["LA122"], self.dict_units_pumps["LA122"][:2])
             pump2_end = "{}: {} {}, {} {}".format("LA122",
-                                                  self.dict_last_flowrate["LA122"],
+                                                  round(self.dict_last_flowrate["LA122"]),
                                                   self.dict_units_pumps["LA122"],
-                                                  self.dict_last_volume["LA122"],
+                                                  round(self.dict_last_volume["LA122"]),
                                                   self.dict_units_pumps["LA122"][:2]
                                                   )
         if "LA160" in self.dict_last_flowrate.keys():
@@ -449,9 +455,9 @@ class Mixing(object):
             LA160.rate(self.dict_last_flowrate["LA160"], self.dict_units_pumps["LA160"])
             LA160.volume(self.dict_last_volume["LA160"], self.dict_units_pumps["LA160"][:2])
             pump3_end = "{}: {} {}, {} {}".format("LA160",
-                                                  self.dict_last_flowrate["LA160"],
+                                                  round(self.dict_last_flowrate["LA160"]),
                                                   self.dict_units_pumps["LA160"],
-                                                  self.dict_last_volume["LA160"],
+                                                  round(self.dict_last_volume["LA160"]),
                                                   self.dict_units_pumps["LA160"][:2]
                                                   )
         p.logger_pump.info("End run:\n{}.\n{}.\n{}.\n".format(pump1_end,
@@ -555,7 +561,8 @@ class Mixing(object):
             volume_to_mixing_2 = channel_instance.volume_to_mixing_2()
             volume_mixing_2_to_outlet = (channel_instance.volume_channel_section("mixing_2-meander_2") +
                                          channel_instance.volume_channel_section("meander_2-meander_2") +
-                                         channel_instance.volume_channel_section("meander_2-outlet")
+                                         channel_instance.volume_channel_section("meander_2-outlet") +
+                                         channel_instance.volume_tubing("outlet")
                                          )
             # self.dict_inlets_pumps = {}  # holds {'inlet_1-1': 'LA160', 'inlet_1-2': 'LA120', 'inlet_1-3': 'LA160'}
             # self.dict_units_pumps = {}  # holds {'LA120': 'ul/h', 'LA160': 'ul/h'}
@@ -651,11 +658,14 @@ class Mixing(object):
                     if number <= len(sorted(c.channel_dict)):
                         self.channel_used = sorted(c.channel_dict)[number - 1]  # TODO: irgendwie muss ich diese Auswahl
                         # noch in global bekommen, damit auch mixing_class.py darauf zugreifen kann.
-                        P.logger_pump.info("Selected channel: {}.".format(self.channel_used))
-                        return mixing()  # return mixing()?
+                        p.logger_pump.info("Selected channel: {}.".format(self.channel_used))
+                        return self.mixing(channel_used, countdown, dict_pump_instances, channel_instance,
+                                           pumps_active, pumps_adr, ramping_time=0, dict_rate_pumps={})  # return mixing()?
                     else:
                         print("There is no channel with number {}.".format(number))
-                        return mixing()
+                        return self.mixing(channel_used, countdown, dict_pump_instances, channel_instance,
+                                           pumps_active, pumps_adr, ramping_time=0, dict_rate_pumps={})
                 except ValueError:
                     print("Please select a number between 1 and {}.".format(len(sorted(c.channel_dict))))
-                    return mixing()
+                    return self.mixing(channel_used, countdown, dict_pump_instances, channel_instance,
+                                       pumps_active, pumps_adr, ramping_time=0, dict_rate_pumps={})
