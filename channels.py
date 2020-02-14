@@ -7,9 +7,15 @@ channel_dict = {"Single meander channel": "single_meander.txt",
 
 
 class Channel(object):
+    """
+    This class holds the variables associated with target channel. It reads the target channel's specifications
+    from a text file using regex. The specifications are stored in the variables defined in __init__. Additionally,
+    functions for calculating the volume of any segment of the channel and its tubing are defined.
+    """
     def __init__(self, filename):
         """
-        :param filename: path to config file
+        Holds all variables associated with the target channel. It automatically calculates the total volume
+        of the channel + the volume of all inlets and outlets and stores it in the variable self.volume_total.
         """
         self.volume_total = 0
         self.channel_volume = 0
@@ -58,18 +64,22 @@ class Channel(object):
         self._set_from_spec_file(filename)
         self.volume_total = _volume_channel()
 
-    # calculates the volume of one inlet or outlet, under the assumption that inlet and outlet
-    # have the same diameter
     def volume_tubing(self, tubing):
+        """
+        calculates the volume of one inlet or outlet, under the assumption that inlet and outlet
+        have the same diameter
+        """
         return self.tubing_x[tubing] * (self.inlet_diameter / 2) ** 2 * math.pi
 
-    # calculate the volume of one section of the channel. Assumption: channel height does not change.
     def volume_channel_section(self, section):
+        """calculate the volume of one section of the channel. Assumption: channel height does not change."""
         return self.channel_x[section] * self.channel_y[section] * self.channel_z
 
-    # calculate the volume of the channels from the inlets to the mixing zone 2.
-    # this function is only needed for the double meander channel.
     def volume_to_mixing_2(self):
+        """
+        Calculate the volume of the channels from the inlets to the mixing zone 2.
+        This function is only needed for the double meander channel.
+        """
         sections = ["inlet_1-1-mixing_1", "inlet_1-2-mixing_1",
                     "inlet_1-3-mixing_1", "mixing_1-meander_1",
                     "meander_1-meander_1", "meander_1-mixing_2"]
@@ -79,7 +89,8 @@ class Channel(object):
         return volume
 
     def _set_from_spec_file(self, filename):
-        """ This function opens the file specified in filename. If/elif statements are used
+        """
+        This function opens the file specified in filename. If/elif statements are used
         to detect keywords. If a keyword is detected, regex is used to extract the desired
         information. The information is stored in variables defined in __init__.
         """
