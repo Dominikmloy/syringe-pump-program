@@ -1,10 +1,7 @@
-import channels as c
-import Module_pumps as p
-import syringes as s
 import ramping_class as r_c
 import mixing_class as m_c
 import setup
-import re
+
 
 # Define Name and address of all pumps:
 pumps = {"LA120": "01", "LA122": "02", "LA160": "03"}

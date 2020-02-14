@@ -3,18 +3,28 @@ import Module_pumps as p
 import syringes as s
 import channels as c
 
+
 def countdown(t, name):
+    """ This function takes two inputs: t in seconds (float or int) and any
+    string as name. The time is converted to minutes and seconds and every
+    second the name and the time (dd:dd) is printed to the screen
+    effectively counting down to zero.
+    """
     t = round(t)
     while t >= 0:
         mins, secs = divmod(t, 60)
         timeformat = '{:02d}:{:02d}'.format(mins, secs)
-        print("{}: {}".format(name, timeformat), end= '\r')
+        print("{}: {}".format(name, timeformat), end='\r')
         time.sleep(1)
         t -= 1
     print("\n")
 
 
 class GlobalPhaseNumber(object):
+    """ This class holds two classmethods to control the phase number. 'next' increases the
+    phase number by +1, while 'reset' resets it to 0.
+    This class is used to assign a phase number to every event, creating a defined sequence of steps.
+    """
     curr_phn = 1
 
     @classmethod
@@ -28,6 +38,13 @@ class GlobalPhaseNumber(object):
 
         
 class Setup(object):
+    """ This class holds all functions and variables related to the setup of the micro mixer.
+     Upon instantiation, it creates an instance of the Chain class from 'Module_pumps.py' and from
+     the Syringes Class from the module 'syringes.py'. Afterwards, each pump is contacted and
+     their status (active / inactive) is stored in a variable.
+     The functions in this class are used to select the utilized channel and syringes and to wash
+     the setup.
+     """
     def __init__(self, pumps):
         self.pumps_active = {"LA120": False, "LA122": False, "LA160": False}
         self.dict_pump_instances = {"LA120": False, "LA122": False, "LA160": False}
@@ -111,7 +128,7 @@ class Setup(object):
         This function needs to be called in the beginning and end of each program to
         wash the channel. The program assumes that all inlets of the chosen channel
         from select_channel() are connected to the same syringe type from
-        select_syringe_washing(). Each pump will run with the max.max_flowrate /
+        select_syringe_washing(). Each pump will run with self.max_flowrate /
         number of inlets. After washing has finished, syringes need to be changed.
         """
         self.number_of_active_pumps = sum(value == True for value in self.pumps_active.values())
@@ -154,17 +171,3 @@ class Setup(object):
             self.LA122.stop()
         if self.pumps_active["LA160"]:
             self.LA160.stop()
-
-    #def pump_instances(self):
-     #   if self.pumps_active["LA120"]:
-     #       self.dict_pump_instances["LA120"] = self.LA120
-       # else:
-        #    self.dict_pump_instances["LA120"] = empty_class
-     #   if self.pumps_active["LA122"]:
-     #       self.dict_pump_instances["LA122"] = self.LA122
-        #else:
-        #    self.dict_pump_instances["LA122"] = empty_class
-     #   if self.pumps_active["LA160"]:
-      #      self.dict_pump_instances["LA160"] = self.LA160
-        #else:
-        #    self.dict_pump_instances["LA160"] = empty_class

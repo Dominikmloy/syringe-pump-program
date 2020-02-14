@@ -1,1 +1,7 @@
-pyserial
+math
+serial
+logging
+datetime
+os
+time
+re

@@ -40,6 +40,8 @@ logging.getLogger('').addHandler(console)
 # Define loggers which represent areas in the application:
 logger_pump = logging.getLogger('pump')
 logger_collector = logging.getLogger('collector')
+# Confirm the function of the loggers by printing "started" to the console
+# and to the log file.
 logger_pump.info("started")
 logger_collector.info("started")
 

@@ -1,6 +1,7 @@
 import math
 import re
 
+# channel_dict maps the file name of the specification file to the channel's name.
 channel_dict = {"Single meander channel": "single_meander.txt",
                 "Double meander channel": "double_meander.txt"}
 
@@ -64,12 +65,13 @@ class Channel(object):
         return volume
 
     def _set_from_spec_file(self, filename):
-        #specs = open(filename, "r")
-        #specs_list = specs.read().split("\n")
-        #for i in specs_list:
+        """ This function opens the file specified in filename. If/elif statements are used
+        to detect keywords. If a keyword is detected, regex is used to extract the desired
+        information. The information is stored in variables defined in __init__.
+        """
 
-        with open(filename, "r") as file:  # file wird automatisch geclosed wenn der with scope verlassen wird
-            for line in file:  # stil tipp: benutze i nur wenn es wirklich nur eine zahl ist. Wenn es eine zeile ist, nenne es auch so.
+        with open(filename, "r") as file:  # file is closed automatically when scope is exited.
+            for line in file:
                 if "inlets_number" in line:
                     digit = [float(s.replace(",", ".")) for s in line.split() if re.findall(r'\d+\.*\d*', s)]
                     self.inlets_number = digit[0]
