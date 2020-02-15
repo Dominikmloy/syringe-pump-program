@@ -51,9 +51,9 @@ class Setup(object):
         self.syringe_washing = 0
         self.channel_used = 0
         self.number_of_active_pumps = 0
-        self.chain = p.Chain("/dev/ttyUSB0")
-        self.max_flowrate = 1500  # ul/h
-        self.syringes = s.Syringes()
+        self.chain = p.Chain("/dev/ttyUSB0")  # instantiates the Chain class.
+        self.max_flowrate = 1500  # ul/h, can be adapted to the respective channel.
+        self.syringes = s.Syringes()  # instantiates the Syringes class.
         self.channel = 0  # instance of class Channel() from channels.py. Instantiated when select_channel() is called.
         # get the information which pumps are active
         try:
@@ -141,6 +141,7 @@ class Setup(object):
         rate = self.max_flowrate / channel.inlets_number
         washing_time = round(volume_per_syr / rate * 3600)
 
+        # write variables to the pumps
         if self.pumps_active["LA120"]:
             self.LA120.diameter(self.syringes.syringes[self.syringe_washing])
             self.LA120.volume(volume_per_syr, "ul")
