@@ -26,7 +26,8 @@ class Ramping(object):
     This class asks the configuration of each pump (which syringe?, how many?,
     final flow rate? [that means what is the flow rate of the first mixing exp?])
     and ramps each pump's flow rate up (or down) to have each educt at the same
-    time at the mixing zone.
+    time at the mixing zone. Argument 'channel' (e.g. which microfluidic channel
+    is used) needs to be set upon instantiation.
     """
     def __init__(self, channel):
         """holds all the necessary attributes"""
@@ -52,17 +53,22 @@ class Ramping(object):
         self.vol_LA122 = []
         self.vol_LA160 = []
 
-        def _tubing_volume():  # geht das so? sollte bei initialisation erstellt werden.
-            """get the volume of each tubing connecting the syringes to
-            the channel's inlets."""
+        def _tubing_volume():
+            """
+            get the volume of each tubing connecting the syringes to
+            the channel's inlets.
+            """
             used_channel = c.Channel(c.channel_dict[channel])
             for key in used_channel.tubing_x.keys():
                 if used_channel.tubing_x[key] > 0:
                     self.dict_tubing_volume[key] = used_channel.volume_tubing(key)
         _tubing_volume()
 
-    def syringes_number(self, pumps_active):  # include check if number of inlets == number of syringes
-        """get the number of syringes in each pump."""
+    def syringes_number(self, pumps_active):  #
+        """
+        get the number of syringes in each pump from the user and checks if target pump
+        can hold as much syringes.
+        """
         for key in sorted(pumps_active):
             if pumps_active[key]:
                 print("How many syringes are in pump {}?".format(key))
@@ -77,13 +83,18 @@ class Ramping(object):
                 except ValueError:
                     print("'{}' is not a valid number of syringes.".format(number))
                     return self.syringes_number(pumps_active)
+        # check if number of syringes matches number of inlets.
         if sum(self.pump_configuration_n.values()) != len(self.dict_tubing_volume) - 1:  # -1: number of outlets
             print("Number of syringes does not match number of inlets.")
             return self.syringes_number(pumps_active)
 
     def syringes_type(self, dict_pump_instances):
-        """get the type of syringes in each pump and write their diameter
-        to the respective pump."""
+        """
+        get the type of syringes in each pump from the user and write their diameter
+        to the respective pump. The user selects the correct syringe from a list
+        of possible syringes from the module syringes.py.
+        """
+        # instantiate syringes class to enable access to the syringes' specs.
         syringes = s.Syringes()
         for key in self.pump_configuration_n.keys():
             print("Which syringe type is in pump {}?".format(key))
@@ -125,8 +136,12 @@ class Ramping(object):
                   Please repeat the selection process.""".format(check_LA160))
             self.tubing_connections()
 
-    def tubing_connections(self):  # include check: too much syringes wired to one pump
-        """get the connection: Which tubing is connected to which pump?"""
+    def tubing_connections(self):
+        """
+        get the connections: user  is queried: Which tubing is connected to which pump?
+        After the selection process, the function checks if the inlets mapped to each
+        pump do not exceed target pump's maximum channels.
+        """
         for inlet in sorted(self.dict_tubing_volume)[:-1]:
             print("The inlet {} is connected to which pump?".format(inlet))
             for pump in sorted(self.pump_configuration_syr):
@@ -142,6 +157,7 @@ class Ramping(object):
             except ValueError:
                 print("Please select a number between 1 and {}.".format(len(sorted(self.pump_configuration_syr))))
                 return self.tubing_connections()
+        # checks if number of inlets mapped to target pump exceeds number of syringes in that pump.
         if len(self.dict_inlets_pumps) != sum(self.pump_configuration_n.values()):
             p.logger_pump.warning("""There are {} inlets connected to {} syringes.
                                   Please repeat the selection process.
@@ -150,12 +166,15 @@ class Ramping(object):
             self.tubing_connections()
         for key in self.dict_inlets_pumps.keys():  # log and inform user.
             p.logger_pump.debug("Routing: {} - {}".format(key, self.dict_inlets_pumps[key]))
+        # after having mapped inlets to pumps, the connection process is checked.
         self.check_connections()
 
     def first_rate(self):
-        """This function ask the user for the flow rate and volume for
+        """
+        This function ask the user for the flow rate and volume for
         each pump that is used for the first mixing cycle. These rates
-        serve as anchor points the ramping function will ramp up or down to."""
+        serve as anchor points the ramping function will ramp up or down to.
+        """
         for pump in sorted(self.pump_configuration_n):
             print("What is the first flow rate for pump {}?".format(pump))
             rate = input("> ").replace(",", ".")
@@ -197,24 +216,22 @@ class Ramping(object):
                     self.dict_rates_pumps[key] = self.dict_rates_pumps[key]  * 1000
                 else:
                     self.total_flowrate += self.pump_configuration_n[key] * self.dict_rates_pumps[key]
-        # calculate mean flowrate
+        # calculate mean flow rate
         highest_rate = max(j for i, j in self.dict_rates_pumps.items() if j > 0)
         ramping_list = [self.total_flowrate * 0.25]
         while len(ramping_list) < self.steps:
             ramping_list.append(ramping_list[-1] + (highest_rate - ramping_list[0])/9)
-        self.mean_flowrate = 350  # former code: sum(ramping_list)/float(len(ramping_list))
-        # problem: intermediate flowrates too high.
-        # TODO: hier muss ich mir die Einheiten aus dict_units_pumps besorgen und daraus dann die Dauer in Sekunden Berechnen.
-        # todo: ggf. in Abhängigkeit von tubing volume? Hätte dann aber den Nachteil, dass die Rektanten zu unterschiedlichen
-        # todo: Zeiten in der mixing zone sind. -> Wenn unterschiedliches volume darauf Hinweise, dass sie gleich lang sein
-        # todo: müssen. oder mean fr anpassen über Faktor inlet_1/inlet_2
+        # mean flow rate is set manually to decrease the possibility of damaging the channel
+        # due to very high flow rates. former code: sum(ramping_list)/float(len(ramping_list))
+        # problem: intermediate flow rates too high.
+        self.mean_flowrate = 350
         self.ramping_time = channel.volume_tubing("inlet_1-1")/self.mean_flowrate * 3600
         p.logger_pump.debug("Mean flow rate: {}".format(self.mean_flowrate))
         p.logger_pump.debug("Total flow rate: {}".format(self.total_flowrate))
         p.logger_pump.info("Ramping time [s]: {}".format(round(self.ramping_time)))
 
     def ramping_calc(self):
-        """This function calculates the flow rate and volume of each step
+        """This function calculates the flow rate and volume of each ramping step
         and stores them in a list"""
         for key in self.dict_rates_pumps.keys():
             if "LA120" in key:  # surrogate test: is pump LA120 being used?
@@ -232,7 +249,7 @@ class Ramping(object):
                                                                                   self.rates_LA120[0])/9, 3))
                 p.logger_pump.debug("Ramping rates LA120: {}".format(", ".join(str(x) for x in self.rates_LA120)))
 
-            elif "LA122" in key:
+            elif "LA122" in key:  # surrogate test: is pump LA122 being used?
                 if self.dict_rates_pumps[key] > self.total_flowrate / sum(self.pump_configuration_n.values()):
                     self.rates_LA122.append(self.total_flowrate * 0.25)
                     while len(self.rates_LA122) < self.steps:
@@ -246,7 +263,7 @@ class Ramping(object):
                                                                                   self.rates_LA122[0])/9, 3))
                 p.logger_pump.debug("Ramping rates LA122: {}".format(", ".join(str(x) for x in self.rates_LA122)))
 
-            elif "LA160" in key:
+            elif "LA160" in key:  # surrogate test: is pump LA160 being used?
                 if self.dict_rates_pumps[key] > self.total_flowrate / sum(self.pump_configuration_n.values()):
                     self.rates_LA160.append(self.total_flowrate * 0.25)
                     while len(self.rates_LA160) < self.steps:
@@ -261,7 +278,7 @@ class Ramping(object):
                 p.logger_pump.debug("Ramping rates LA160: {}".format(", ".join(str(x) for x in self.rates_LA160)))
 
         # calculate volume per step and write it into a list
-        self.time_per_step = self.ramping_time / self.steps  # todo make sure, that this has the same time unit as rate
+        self.time_per_step = self.ramping_time / self.steps
         if len(self.rates_LA120) > 0:
             if "h" in self.dict_units_pumps["LA120"]:
                 for rate in self.rates_LA120:
@@ -289,12 +306,12 @@ class Ramping(object):
                     self.vol_LA160.append(round(rate * self.time_per_step / 60, 3))
             p.logger_pump.debug("Ramping volumes LA160: {}".format(", ".join(str(x) for x in self.vol_LA160)))
 
-    empty_class = EmptyClass()
+    # instantiate EmptyClass from the beginning of this module.
+    empty_class = EmptyClass()  # I am sure this class is not necessary, but it works this way.
 
     def writing(self, global_phase_number, LA120 = empty_class, LA122=empty_class, LA160=empty_class):
         """Writes the rates and volumes to the pumps together with the global
         phase number"""
-        # class Pump instances (LA120. LA122. LA160.) aus main übernehmen oder neu createn?
         for iterator in range(self.steps):
             phn = global_phase_number.next()  # returns the current phase number and adds 1
             if len(self.rates_LA120) > 0:
