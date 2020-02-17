@@ -60,7 +60,7 @@ class Mixing(object):
     def number_of_runs(self):
         """ This function establishes the number of runs to be executed and
         stores them in a variable. Default is 1. If number of runs > 1,
-        self.overlap() is called to allow for customization of overlap volume.
+        self.overlap() should be called to allow for customization of overlap volume.
         """
         print("How many runs do you want to make?")
         runs = input("> ")
@@ -72,9 +72,11 @@ class Mixing(object):
             return self.number_of_runs()
 
     def rate(self, pumps_active):
-        """ This function asks the user rates to each run.
+        """ This function asks the user to provide rates for each run. The rates' unit is selected once for
+        all subsequent runs on this pump.
         """
         for i in range(self.runs):
+            # rate and unit for the first pump is queried.
             if pumps_active[sorted(pumps_active)[0]]:  # pumps_active: dict aus 'main.py', [0]: LA120
                 print("What is the flow rate for run {} for pump {}?".format(i+1, sorted(pumps_active)[0]))
                 rate = input("> ").replace(",", ".")
@@ -85,6 +87,8 @@ class Mixing(object):
                 except ValueError:
                     print("Please choose a number.")
                     return self.rate(pumps_active)
+
+                # in the first iteration the user is asked to select the rates' unit for all runs on this pump.
                 if i == 0:
                     print("Select the unit for all flow rates for pump {}:".format(sorted(pumps_active)[0]))
                     for unit in self.possible_units:
@@ -102,6 +106,7 @@ class Mixing(object):
                         print("Please select a number between 1 and {}.".format(len(self.possible_units)))
                         return self.rate(pumps_active)
 
+            # rate and unit for the second pump is queried.
             if pumps_active[sorted(pumps_active)[1]]:  # LA122
                 print("What is the flow rate for run {} for pump {}?".format(i+1, sorted(pumps_active)[1]))
                 rate = input("> ").replace(",", ".")
@@ -112,6 +117,8 @@ class Mixing(object):
                 except ValueError:
                     print("Please choose a number.")
                     return self.rate(pumps_active)
+
+                # in the first iteration the user is asked to select the rates' unit for all runs on this pump.
                 if i == 0:
                     print("Select the flow rate's unit:")
                     for unit in self.possible_units:
@@ -128,7 +135,7 @@ class Mixing(object):
                     except ValueError:
                         print("Please select a number between 1 and {}.".format(len(self.possible_units)))
                         return self.rate(pumps_active)
-
+            # rate and unit for the third pump is queried.
             if pumps_active[sorted(pumps_active)[2]]:  # LA160
                 print("What is the flow rate for run {} for pump {}?".format(i+1, sorted(pumps_active)[2]))
                 rate = input("> ").replace(",", ".")
@@ -140,6 +147,8 @@ class Mixing(object):
                 except ValueError:
                     print("Please choose a number.")
                     return self.rate(pumps_active)
+
+                # in the first iteration the user is asked to select the rates' unit for all runs on this pump.
                 if i == 0:
                     print("Select the flow rate's unit:")
                     for unit in self.possible_units:
@@ -160,7 +169,8 @@ class Mixing(object):
             self.name.append("run {}".format(i + 1))
 
     def volume(self, pumps_active):
-        """ This function asks the user volumes to each run.
+        """ This function asks the user volumes for each run and pump and appends it to respective list
+        (self.volume_LAXXX).
         """
         for i in range(self.runs):
             if pumps_active[sorted(pumps_active)[0]]:  # LA120
@@ -176,7 +186,8 @@ class Mixing(object):
                 except ValueError:
                     print("Please choose a number.")
                     return self.volume(pumps_active)
-            if pumps_active[sorted(pumps_active)[1]]:  #  LA122
+
+            if pumps_active[sorted(pumps_active)[1]]:  # LA122
                 print("What is the volume for run {} for pump {}?".format(i+1, sorted(pumps_active)[1]))
                 volume = input("> ").replace(",", ".")
                 try:
@@ -189,6 +200,7 @@ class Mixing(object):
                 except ValueError:
                     print("Please choose a number.")
                     return self.volume(pumps_active)
+
             if pumps_active[sorted(pumps_active)[2]]:  # LA160
                 print("What is the volume for run {} for pump {}?".format(i+1, sorted(pumps_active)[2]))
                 volume = input("> ").replace(",", ".")
@@ -205,7 +217,7 @@ class Mixing(object):
 
     def overlap_calc(self):
         """ This function asks for the overlap between runs and
-        stores them in a variable. Default is 8 \u03BCl. Afterwards, it adds volumes
+        stores them in a variable (self.overlap). A sensible value is 8 \u03BCl. Afterwards, it adds volumes
         and rates in between runs in self.rates_LAxxx und self.vol_LAxxx.
         """
         print("How much overlap [\u03BCl] do you want to have between runs?")
@@ -219,6 +231,10 @@ class Mixing(object):
         # calculate relative overlap for each pump
 
         def _relative_overlap_calc(rates_list):
+            """
+            This function takes the list of the rates from one pump as parameter and calculates the relative
+            overlap volume for each pump.
+            """
             for j in range(0, len(rates_list)):
                 # calculate total flow rate
                 flowrate = 0
@@ -241,55 +257,71 @@ class Mixing(object):
                     self.overlap_LA160.append(self.rates_LA160[j]/flowrate *
                                               self.pump_configuration_n["LA160"] *
                                               self.overlap)
+        # checks, if self.rates_LA120 exists, calculates the necessary overlaps and inserts them into the
+        # pump volume's list. Additionally, the name of the overlap is inserted into the variable self.name which
+        # is used to inform the user with the countdown function.
         if self.rates_LA120:
             _relative_overlap_calc(self.rates_LA120)
             for i in range(len(self.overlap_LA120)):
                 self.name.insert(i*2, "overlap {}".format(i))
             del self.name[0]
+
         elif self.rates_LA122:
             _relative_overlap_calc(self.rates_LA122)
             for i in range(len(self.overlap_LA122)):
                 self.name.insert(i*2, "overlap {}".format(i))
             del self.name[0]
+
         elif self.rates_LA160:
             _relative_overlap_calc(self.rates_LA160)
             for i in range(len(self.overlap_LA160)):
                 self.name.insert(i*2, "overlap {}".format(i))
             del self.name[0]
+
         # insert relative overlap into each self.volume
         for i in range(0, len(self.volumes_LA120)):
             self.volumes_LA120.insert(i*2, self.overlap_LA120[i])
         if self.volumes_LA120:
             del self.volumes_LA120[0]  # removes first item in the list. Overlap is only necessary between runs.
+
         for i in range(0, len(self.volumes_LA122)):
             self.volumes_LA122.insert(i*2, self.overlap_LA122[i])
         if self.volumes_LA122:
             del self.volumes_LA122[0]
+
         for i in range(0, len(self.volumes_LA160)):
             self.volumes_LA160.insert(i*2, self.overlap_LA160[i])
         if self.volumes_LA160:
             del self.volumes_LA160[0]
+
         # insert overlap flow rate (rate of the next run) into each self.rate
         for i in range(0, len(self.rates_LA120)):
             self.rates_LA120.insert(i*2, self.rates_LA120[i*2])  # *2 because with each iteration of the loop the
             # length of rates.LA120 grows
+
         if self.rates_LA120:
             del self.rates_LA120[0]
         for i in range(0, len(self.rates_LA122)):
             self.rates_LA122.insert(i*2, self.rates_LA122[i*2])
+
         if self.rates_LA122:
             del self.rates_LA122[0]
         for i in range(0, len(self.rates_LA160)):
             self.rates_LA160.insert(i*2, self.rates_LA160[i*2])
+
         if self.rates_LA160:
             del self.rates_LA160[0]
 
     def end_process(self, channels_instance, pumps_active):
-        """ This functions asks which pumps should be used to transport
-        the product of the final mixing step to the outlet.
+        """ This functions asks if the channel shall be purged after the last run, and if yes,
+         which pumps (one ore more are possible) should be used to transport the product of the
+         final mixing step to the outlet.
         """
         print("Do you want to pump the product of the final mixing run into the collector?")
         answer = input("> ")
+        if "n" in answer.lower():
+            p.logger_pump.info("Channel is not purged after the last run")
+
         if "y" in answer.lower():
             pumps_end_process = []
             volume = channels_instance.channel_volume + channels_instance.volume_tubing("outlet")
@@ -310,10 +342,11 @@ class Mixing(object):
             if "3" in user_input:
                 pumps_end_process.append("LA160")
             if str(user_input) not in "123":
-                print("Please choose a number.")
+                print("Please choose a number (1, 2, or 3).")
                 return self.end_process(channels_instance, pumps_active)
             p.logger_pump.info("""The following pumps will pump the
                                final product: {}""".format(", ".join(pumps_end_process)))
+
             # calculate relative flow rates and add them to
             # dict_last_flowrate and dict_last_volume.
             last_flowrate = []
@@ -362,7 +395,6 @@ class Mixing(object):
         """ Asks for overlap and writes the rates and volumes to the pumps
         together with the global phase number
         """
-
         self.overlap_calc()
         self.end_process(channels_instance, pumps_active)
         if "LA120" in pumps_instances_dict:
@@ -467,8 +499,7 @@ class Mixing(object):
     def mixing(self, channel_used, countdown, dict_pump_instances, channel_instance,
                pumps_active, pumps_adr, ramping_time=0, dict_rate_pumps={}):
         """ This function checks which channel is used and starts the pumps.
-
-        If the double meander channel is used, it asks if the user
+        If the double meander channel is used, it asks if the user if he/she
         wants to pump the educts at the different inlets
         at different times. Then it calculates the time difference
         and starts the pumps.
@@ -649,18 +680,17 @@ class Mixing(object):
             print("""Do you want to execute the program for the single or double
                   meander channel anyway?""")
             resp = input("Yes/No >")
-            if "Y" in resp or "y" in resp:
+            if "Y" in resp.lower():
                 for item in sorted(c.channel_dict):
                     print("{}: {}".format(sorted(c.channel_dict).index(item) + 1, item))
                 channel_number = input("> ")
                 try:
                     number = int(channel_number)
                     if number <= len(sorted(c.channel_dict)):
-                        self.channel_used = sorted(c.channel_dict)[number - 1]  # TODO: irgendwie muss ich diese Auswahl
-                        # noch in global bekommen, damit auch mixing_class.py darauf zugreifen kann.
+                        self.channel_used = sorted(c.channel_dict)[number - 1]
                         p.logger_pump.info("Selected channel: {}.".format(self.channel_used))
                         return self.mixing(channel_used, countdown, dict_pump_instances, channel_instance,
-                                           pumps_active, pumps_adr, ramping_time=0, dict_rate_pumps={})  # return mixing()?
+                                           pumps_active, pumps_adr, ramping_time=0, dict_rate_pumps={})
                     else:
                         print("There is no channel with number {}.".format(number))
                         return self.mixing(channel_used, countdown, dict_pump_instances, channel_instance,
