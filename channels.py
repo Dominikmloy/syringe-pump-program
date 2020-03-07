@@ -17,6 +17,7 @@ class Channel(object):
         Holds all variables associated with the target channel. It automatically calculates the total volume
         of the channel + the volume of all inlets and outlets and stores it in the variable self.volume_total.
         """
+        self.max_flowrate = 1500
         self.volume_total = 0
         self.channel_volume = 0
         self.interface_volume = 0  # e.g. the tubing's volume leading to the channels
@@ -46,17 +47,17 @@ class Channel(object):
         self.interface_diameter = 0
         # dictionaries mapping the length in x, y, z direction of a section [mm] to
         # the respective name of the section. name1-name2 denotes the section between the two names
-        self.tubing_x = {"inlet_1-1": 0, "inlet_1-2": 0, "inlet_1-3": 0,
-                         "inlet_2-1": 0, "inlet_2-2": 0, "outlet": 0}
-        self.channel_x = {"inlet_1-1-mixing_1": 0, "inlet_1-2-mixing_1": 0,
-                          "inlet_1-3-mixing_1": 0, "mixing_1-meander_1": 0,
+        self.tubing_x = {"inlet_1_1": 0, "inlet_1_2": 0, "inlet_1_3": 0,
+                         "inlet_2_1": 0, "inlet_2_2": 0, "outlet": 0}
+        self.channel_x = {"inlet_1_1-mixing_1": 0, "inlet_1_2-mixing_1": 0,
+                          "inlet_1_3-mixing_1": 0, "mixing_1-meander_1": 0,
                           "meander_1-meander_1": 0, "meander_1-outlet": 0, "meander_1-mixing_2": 0,
-                          "inlet_2-1-mixing_2": 0, "inlet_2-2-mixing_2": 0,
+                          "inlet_2_1-mixing_2": 0, "inlet_2_2-mixing_2": 0,
                           "mixing_2-meander_2": 0, "meander_2-meander_2": 0, "meander_2-outlet": 0}
-        self.channel_y = {"inlet_1-1-mixing_1": 0, "inlet_1-2-mixing_1": 0,
-                          "inlet_1-3-mixing_1": 0, "mixing_1-meander_1": 0,
+        self.channel_y = {"inlet_1_1-mixing_1": 0, "inlet_1_2-mixing_1": 0,
+                          "inlet_1_3-mixing_1": 0, "mixing_1-meander_1": 0,
                           "meander_1-meander_1": 0, "meander_1-outlet": 0, "meander_1-mixing_2": 0,
-                          "inlet_2-1-mixing_2": 0, "inlet_2-2-mixing_2": 0,
+                          "inlet_2_1-mixing_2": 0, "inlet_2_2-mixing_2": 0,
                           "mixing_2-meander_2": 0, "meander_2-meander_2": 0, "meander_2-outlet": 0}
         self.channel_z = 0
         # reads the channel's specifications from the spec file and stores them in the variables
@@ -80,8 +81,8 @@ class Channel(object):
         Calculate the volume of the channels from the inlets to the mixing zone 2.
         This function is only needed for the double meander channel.
         """
-        sections = ["inlet_1-1-mixing_1", "inlet_1-2-mixing_1",
-                    "inlet_1-3-mixing_1", "mixing_1-meander_1",
+        sections = ["inlet_1_1-mixing_1", "inlet_1_2-mixing_1",
+                    "inlet_1_3-mixing_1", "mixing_1-meander_1",
                     "meander_1-meander_1", "meander_1-mixing_2"]
         volume = 0
         for section in sections:
