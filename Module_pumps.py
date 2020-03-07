@@ -107,6 +107,11 @@ class Pump(object):
         self.serialcon = chain
         self.dia = 0
         self.status = False
+        self.units_dict = {"\u03BCl/min": "um", "\u03BCl/m": "um", "\u03BC/min": "um",
+                      "ml/min": "mm", "ml/m": "mm", "m/min": "mm",
+                      "\u03BCl/h": "uh", "\u03BC/h": "uh",
+                      "ul/h": "uh", "u/h": "uh",
+                      "ml/h": "mh", "m/h": "mh"}
 
         try:
             command = "{}{}".format(str(self.address), '?\r')
@@ -224,13 +229,9 @@ class Pump(object):
         if len(rate) > 5:
             rate = rate[0:5]
             logger_pump.debug('{}: flow rate truncated to {} {}'.format(self.name, rate, unit))
-        units_dict = {"\u03BCl/min": "um", "\u03BCl/m": "um", "\u03BC/min": "um",
-                      "ml/min": "mm", "ml/m": "mm", "m/min": "mm",
-                      "\u03BCl/h": "uh", "\u03BC/h": "uh",
-                      "ul/h": "uh", "u/h": "uh",
-                      "ml/h": "mh", "m/h": "mh"}
+
         # if the correct syntax for the unit parameter was used, pass it to the serial.write function.
-        if unit in units_dict.values():
+        if unit in self.units_dict.values():
             command = "{}rat{}{}\r".format(str(self.address), rate, unit)
             self.serialcon.write(command.encode())
             resp = self.serialcon.read(10).decode()
@@ -256,8 +257,8 @@ class Pump(object):
             else:
                 logger_pump.info("{}: Rate set to {} {}".format(self.name, rate, unit))
         # if the value of the unit parameter is wrong, it is changed in the next step.
-        elif unit in units_dict:
-            unit_replaced = units_dict[unit]
+        elif unit in self.units_dict:
+            unit_replaced = self.units_dict[unit]
             command = "{}rat{}{}\r".format(str(self.address), str(rate), unit_replaced)
             self.serialcon.write(command.encode())
             resp = self.serialcon.read(10).decode()
