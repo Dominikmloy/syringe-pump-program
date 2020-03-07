@@ -48,11 +48,11 @@ class Setup(object):
     def __init__(self, pumps):
         self.pumps_active = {"LA120": False, "LA122": False, "LA160": False}
         self.dict_pump_instances = {"LA120": False, "LA122": False, "LA160": False}
-        self.syringe_washing = 0
-        self.channel_used = 0
+        self.syringe_washing = ""  # holds a string with the name of the syringe from the syringes.py module.
+        self.channel_used = ""  # holds a string with the name of the channel from the channels.py module.
         self.number_of_active_pumps = 0
         self.chain = p.Chain("/dev/ttyUSB0")  # instantiates the Chain class.
-        self.max_flowrate = 1500  # ul/h, can be adapted to the respective channel.
+        self.max_flowrate = 0  # ul/h, can be adapted to the respective channel.
         self.syringes = s.Syringes()  # instantiates the Syringes class.
         self.channel = 0  # instance of class Channel() from channels.py. Instantiated when select_channel() is called.
         # get the information which pumps are active
@@ -78,50 +78,116 @@ class Setup(object):
             p.logger_pump.info("{} is not responding at address {}.".format(sorted(pumps)[2],
                                                                             pumps[sorted(pumps)[2]]))
 
-    def select_syringe_washing(self):  # ask user which syringes to use.
+    @staticmethod
+    def print_dict_keys(dictionary):
+        """ this function returns a string of all dictionary keys separated by commas."""
+        key_list = []
+        for key in dictionary:
+            key_list.append(key)
+        string = ", ".join(key_list)
+        return string
+
+    def select_syringe_washing(self, **kwargs):  # ask user which syringes to use.
         """
         This function lets the user choose one of the syringes from the syringes.py
         module. It is assumed that all inlets are connected to this syringe type.
+        The target syringe can also be passed to the function via the **kwargs
+        argument. Example: Kwarg: syringe_washing = "Hamilton_1710TLL-XL_0.1mll"
         """
-        print("Select syringe used for washing:")
-        for item in sorted(self.syringes.syringes):
-            print("{}: {}".format(sorted(self.syringes.syringes).index(item) + 1, item))
-        syringe_number = input("> ")
-        try:
-            number = int(syringe_number)
-            if number <= len(sorted(self.syringes.syringes)):
-                self.syringe_washing = (sorted(self.syringes.syringes)[number - 1])
-                p.logger_pump.info("Selected syringe for washing: {}.".format(self.syringe_washing))
+
+        def error_message(error_number):
+            """ nested function that defines the error message to be given when the
+            kwargs are wrong."""
+            print("Error number: {}\n".format(error_number),
+                  "Error in keyword arguments provided.",
+                  "\nProvided {}.\n".format(kwargs),
+                  "Expected:\n'syringe_washing' = {}".format(self.print_dict_keys(self.syringes.syringes)),
+                  "\nProgram aborted.")
+            p.logger_pump.debug("Error message {}: ".format(number),
+                                "Function 'select_syringe_washing()' aborted",
+                                " due to errors in the kwargs: {}.".format(kwargs))
+            raise SystemExit("Program aborted.")
+
+        if kwargs:
+            syringe_washing = kwargs.get("syringe_washing", None)
+            if syringe_washing is None:
+                error_message(1)
             else:
-                print("There is no syringe with number {}.".format(number))
+                if syringe_washing not in self.syringes.syringes.keys():
+                    error_message(2)
+                else:
+                    self.syringe_washing = syringe_washing
+                    p.logger_pump.info("Selected syringe for washing: {}.".format(self.syringe_washing))
+        else:
+            print("Select syringe used for washing:")
+            for item in sorted(self.syringes.syringes):
+                print("{}: {}".format(sorted(self.syringes.syringes).index(item) + 1, item))
+            syringe_number = input("> ")
+            try:
+                number = int(syringe_number)
+                if number <= len(sorted(self.syringes.syringes)):
+                    self.syringe_washing = (sorted(self.syringes.syringes)[number - 1])
+                    p.logger_pump.info("Selected syringe for washing: {}.".format(self.syringe_washing))
+                else:
+                    print("There is no syringe with number {}.".format(number))
+                    return self.select_syringe_washing()
+            except ValueError:
+                print("Please select a number between 1 and {}.".format(len(sorted(self.syringes.syringes))))
                 return self.select_syringe_washing()
-        except ValueError:
-            print("Please select a number between 1 and {}.".format(len(sorted(self.syringes.syringes))))
-            return self.select_syringe_washing()
     
     # ask user which channel is used.
-    def select_channel(self):
+    def select_channel(self, **kwargs):
         """
         This function lets the user choose one of the channels from the channels.py
         module. This choice is essential to the program because the channel's
         properties define number of syringes and volume to be dispensed.
+        The target channel can also be passed to the function via the **kwargs
+        argument. Example: Kwarg: channel = "Single meander channel"
         """
-        print("Select channel:")
-        for item in sorted(c.channel_dict):
-            print("{}: {}".format(sorted(c.channel_dict).index(item) + 1, item))
-        channel_number = input("> ")
-        try:
-            number = int(channel_number)
-            if number <= len(sorted(c.channel_dict)):
-                self.channel_used = sorted(c.channel_dict)[number - 1]
-                self.channel = c.Channel(c.channel_dict[self.channel_used])
-                p.logger_pump.info("Selected channel: {}.".format(self.channel_used))
+
+        def error_message(error_number):
+            """ nested function that defines the error message to be given when the
+            kwargs are wrong."""
+            print("Error number: {}\n".format(error_number),
+                  "Error in keyword arguments provided.",
+                  "\nProvided {}.\n".format(kwargs),
+                  "Expected:\n'channel' = {}".format(self.print_dict_keys(c.channel_dict)),
+                  "\nProgram aborted.",)
+            p.logger_pump.debug("Error message {}: ".format(number),
+                                "Function 'select_channel()' aborted",
+                                " due to errors in the kwargs: {}.".format(kwargs))
+            raise SystemExit("Program aborted.")
+
+        if kwargs:
+            channel = kwargs.get("channel", None)
+            if channel is None:
+                error_message(1)
             else:
-                print("There is no channel with number {}.".format(number))
+                if channel not in c.channel_dict.keys():
+                    error_message(2)
+                else:
+                    self.channel_used = channel
+                    self.channel = c.Channel(c.channel_dict[self.channel_used])
+                    self.max_flowrate = self.channel.max_flowrate
+                    p.logger_pump.info("Selected channel: {}.".format(self.channel_used))
+        else:
+            print("Select channel:")
+            for item in sorted(c.channel_dict):
+                print("{}: {}".format(sorted(c.channel_dict).index(item) + 1, item))
+            channel_number = input("> ")
+            try:
+                number = int(channel_number)
+                if number <= len(sorted(c.channel_dict)):
+                    self.channel_used = sorted(c.channel_dict)[number - 1]
+                    self.channel = c.Channel(c.channel_dict[self.channel_used])
+                    self.max_flowrate = self.channel.max_flowrate
+                    p.logger_pump.info("Selected channel: {}.".format(self.channel_used))
+                else:
+                    print("There is no channel with number {}.".format(number))
+                    return self.select_channel()
+            except ValueError:
+                print("Please select a number between 1 and {}.".format(len(sorted(c.channel_dict))))
                 return self.select_channel()
-        except ValueError:
-            print("Please select a number between 1 and {}.".format(len(sorted(c.channel_dict))))
-            return self.select_channel()
 
     def washing(self):
         """
