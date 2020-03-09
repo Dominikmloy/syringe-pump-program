@@ -12,7 +12,7 @@ class Mixing(object):
         """ Holds all the necessary attributes and functions."""
         self.ramping = ramping_instance  # passes the information of the ramping instance to this class.
         self.setup = setup_instance  # passes the information of the setup instance to this class.
-        self.overlap = 8  # overlap to be inserted between runs. Defaults to 8 µl.
+        self.overlap = 8  # overlap to be inserted between runs. Defaults to 8 ul.
         self.runs = 1  # number of mixing runs with defined rates and volumes. Defaults to 1.
         self.diameter_LA120 = 0  # diameter of the syringe(s) equipped to pump LA120
         self.diameter_LA122 = 0  # diameter of the syringe(s) equipped to pump LA122
@@ -41,10 +41,9 @@ class Mixing(object):
         self.channel_used = 0
         self.dict_rates_pumps = {}  # holds the flow rates of the first run
         self.units_dict = {"\u03BCl/min": "um", "\u03BCl/m": "um", "\u03BC/min": "um",
-                           "µl/min": "um", "µl/m": "um", "µ/min": "um",
                            "ml/min": "mm", "ml/m": "mm", "m/min": "mm",
                            "\u03BCl/h": "uh", "\u03BC/h": "uh",
-                           "ul/h": "uh", "u/h": "uh", "µl/h": "uh", "µ/h": "uh",
+                           "ul/h": "uh", "u/h": "uh",
                            "ml/h": "mh", "m/h": "mh"}
 
         def _standalone():
@@ -118,7 +117,7 @@ class Mixing(object):
         via the kwargs. The names of the arguments should be <name_of_pump>_rate for rates and
         <name_of_pump>_unit for units. Rates must be stored in a list. All active pumps must be used.
         Example: LA120_rates = [120,140,160], LA160_rates = [1200, 1400, 1600],
-        LA120_unit = 'µl/h', LA160_unit = 'µl/h'.
+        LA120_unit = 'ul/h', LA160_unit = 'ul/h'.
         """
         def error_message(error_number, additional_info):
             """ nested function that defines the error message to be given when the
