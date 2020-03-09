@@ -55,10 +55,9 @@ class Ramping(object):
         self.vol_LA160 = []
         # used to check kwargs in first_rate() for validity.
         self.units_dict = {"\u03BCl/min": "um", "\u03BCl/m": "um", "\u03BC/min": "um",
-                           "µl/min": "um", "µl/m": "um", "µ/min": "um",
                            "ml/min": "mm", "ml/m": "mm", "m/min": "mm",
                            "\u03BCl/h": "uh", "\u03BC/h": "uh",
-                           "ul/h": "uh", "u/h": "uh", "µl/h": "uh", "µ/h": "uh",
+                           "ul/h": "uh", "u/h": "uh",
                            "ml/h": "mh", "m/h": "mh"}
 
         def _tubing_volume():
