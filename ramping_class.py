@@ -40,7 +40,7 @@ class Ramping(object):
         self.mean_flowrate = 0
         self.pump_configuration_n = {}  # Holds the numbers of syringes per pump, e.g., LA120: 2
         self.pump_configuration_syr = {}  # Holds the syringe's type per pump, e.g., LA120: Hamilton_1710TLL-XL_0.1ml
-        self.dict_tubing_volume = {}  # Holds the channel's inlets and their resp. volumes [µl], e.g., inlet_1_1: 12
+        self.dict_tubing_volume = {}  # Holds the channel's inlets and their resp. volumes [ul], e.g., inlet_1_1: 12
         self.dict_inlets_pumps = {}  # Holds the channel's inlets and their respective pumps, e.g., inlet_1_1: LA120
         self.dict_rates_pumps = {}  # Holds the final flow rate of the ramping process. This is the first flow rate
         # of the mixing process, as well.
