@@ -5,9 +5,9 @@ import setup
 # Usage: E.g., Formulation of core nanoparticles from two components.
 # The Single meander channel is washed with 1.0 ml Tuberkulin syringes in pumps LA120 and LA160.
 # Afterwards, LA120 is equipped with one Hamilton 0.5 ml and LA160 is equipped with two Hamilton 1.0 ml syringes.
-# Three mixing runs are executed with Flow_rates_LA120 = [63.2, 126.3, 189.5] µl/h, and
-# Flow_rates_LA160 = [600, 600, 600] µl/h. Respective volumes are volumes_LA120 = [5, 10, 15] µl, and
-# volumes_LA160 = [47.5, 47.5, 47.5] µl. Overlap between runs is 8 µl.
+# Three mixing runs are executed with Flow_rates_LA120 = [63.2, 126.3, 189.5] ul/h, and
+# Flow_rates_LA160 = [600, 600, 600] ul/h. Respective volumes are volumes_LA120 = [5, 10, 15] ul, and
+# volumes_LA160 = [47.5, 47.5, 47.5] ul. Overlap between runs is 8 ul.
 # Pump LA160 is used to purge the product from the channel.
 # In the end, the user is asked to wash the channel again.
 
@@ -38,8 +38,8 @@ number_of_runs = 3
 Flow_rates_LA120 = [63.2, 126.3, 189.5]
 Flow_rates_LA160 = [600, 600, 600]
 # Units of the flow rates of the mixing process
-Units_LA120 = "µl/h"
-Units_LA160 = "µl/h"
+Units_LA120 = "\u03BCl/h"  # ul/h
+Units_LA160 = "\u03BCl/h"  # ul/h
 # volumes of the mixing process
 volumes_LA120 = [5, 10, 15]
 volumes_LA160 = [47.5, 47.5, 47.5]

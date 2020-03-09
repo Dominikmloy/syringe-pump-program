@@ -9,9 +9,9 @@ import setup
 # LA122 feeds both inlets before the second mixing zone (inlet2_1 and inlet2_2)
 # LA120 is equipped with one Hamilton 0.5 ml syringe, LA160 is equipped with one Hamilton 1.0 ml syringe,
 # and LA122 is equipped with two Hamilton 0.1 ml syringes.
-# Three mixing runs are executed with Flow_rates_LA120 = [100, 100, 100] µl/h, Flow_rates_LA122 = [25, 50, 75] µl/h
-# and Flow_rates_LA160 = [900, 900, 900] µl/h. Respective volumes are volumes_LA120 = [10, 10, 10] µl,
-# volumes_LA122 = [3, 6, 9] µl, and volumes_LA160 = [90, 90, 90] µl. Overlap between runs is 8 µl.
+# Three mixing runs are executed with Flow_rates_LA120 = [100, 100, 100] ul/h, Flow_rates_LA122 = [25, 50, 75] ul/h
+# and Flow_rates_LA160 = [900, 900, 900] ul/h. Respective volumes are volumes_LA120 = [10, 10, 10] ul,
+# volumes_LA122 = [3, 6, 9] ul, and volumes_LA160 = [90, 90, 90] ul. Overlap between runs is 8 ul.
 # Pump LA160 is used to purge the product from the channel.
 # In the end, the user is asked to wash the channel again.
 
@@ -46,9 +46,9 @@ Flow_rates_LA120 = [100, 100, 100]
 Flow_rates_LA122 = [25, 50, 75]
 Flow_rates_LA160 = [900, 900, 900]
 # Units of the flow rates of the mixing process
-Units_LA120 = "µl/h"
-Units_LA122 = "µl/h"
-Units_LA160 = "µl/h"
+Units_LA120 = "\u03BCl/h"
+Units_LA122 = "\u03BCl/h"
+Units_LA160 = "\u03BCl/h"
 # volumes of the mixing process
 volumes_LA120 = [10, 10, 10]
 volumes_LA122 = [3, 6, 9]
