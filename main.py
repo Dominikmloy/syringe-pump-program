@@ -34,11 +34,10 @@ mixing = m_c.Mixing(ramping_instance=ramping)
 mixing.number_of_runs()
 mixing.rate(pumps_setup.pumps_active)
 mixing.volume(pumps_setup.pumps_active)
-mixing.overlap()
+mixing.overlap_calc()
 mixing.end_process(pumps_setup.channel,
                    pumps_setup.pumps_active)
 mixing.writing(pumps_setup.dict_pump_instances,
-               pumps_setup.channel,
                pumps_setup.pumps_active,
                phase_number)
 mixing.mixing(pumps_setup.channel_used,

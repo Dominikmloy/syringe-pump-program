@@ -108,10 +108,10 @@ class Pump(object):
         self.dia = 0
         self.status = False
         self.units_dict = {"\u03BCl/min": "um", "\u03BCl/m": "um", "\u03BC/min": "um",
-                      "ml/min": "mm", "ml/m": "mm", "m/min": "mm",
-                      "\u03BCl/h": "uh", "\u03BC/h": "uh",
-                      "ul/h": "uh", "u/h": "uh",
-                      "ml/h": "mh", "m/h": "mh"}
+                           "ml/min": "mm", "ml/m": "mm", "m/min": "mm",
+                           "\u03BCl/h": "uh", "\u03BC/h": "uh",
+                           "ul/h": "uh", "u/h": "uh",
+                           "ml/h": "mh", "m/h": "mh"}
 
         try:
             command = "{}{}".format(str(self.address), '?\r')

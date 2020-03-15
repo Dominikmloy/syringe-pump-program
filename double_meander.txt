@@ -9,7 +9,6 @@ tubing_x: inlet_1_2: 110 mm
 tubing_x: inlet_2_1: 110 mm
 tubing_x: inlet_2_2: 110 mm
 tubing_x: outlet: 110 mm
-channel x: alle 20er erfunden.
 channel_x: inlet_1_1-mixing_1: 38.593 mm
 channel_x: inlet_1_2-mixing_1: 6.575 mm
 channel_x: inlet_1_3-mixing_1: 0 mm
@@ -35,4 +34,3 @@ channel_y: mixing_2-meander_2: 0.2 mm
 channel_y: meander_2-meander_2: 0.2 mm
 channel_y: meander_2-outlet: 0.2 mm
 channel_z: 0,090
-

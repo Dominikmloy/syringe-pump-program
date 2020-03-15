@@ -28,8 +28,8 @@ class Channel(object):
                 return self.volume_total
             else:
                 # calculate total interface volume
-                self.interface_volume = (self.inlets_number + self.outlets_number) * \
-                                        math.pi * self.interface_diameter ** 2
+                for key in self.tubing_x:
+                    self.interface_volume += self.tubing_x[key] * math.pi * self.interface_diameter ** 2
                 # Calculate the volume of each segment of the channel.
                 # Sum them up to get the total channel volume
                 for key in self.channel_x:
@@ -84,6 +84,18 @@ class Channel(object):
         sections = ["inlet_1_1-mixing_1", "inlet_1_2-mixing_1",
                     "inlet_1_3-mixing_1", "mixing_1-meander_1",
                     "meander_1-meander_1", "meander_1-mixing_2"]
+        volume = 0
+        for section in sections:
+            volume += self.volume_channel_section(section)
+        return volume
+
+    def volume_to_mixing_1(self):
+        """
+        Calculate the volume of the channels from the inlets to the mixing zone 2.
+        This function is only needed for the double meander channel.
+        """
+        sections = ["inlet_1_1-mixing_1", "inlet_1_2-mixing_1",
+                    "inlet_1_3-mixing_1"]
         volume = 0
         for section in sections:
             volume += self.volume_channel_section(section)

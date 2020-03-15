@@ -8,12 +8,11 @@ tubing_x: inlet_1_1: 110 mm
 tubing_x: inlet_1_2: 110 mm
 tubing_x: inlet_1_3: 110 mm
 tubing_x: outlet: 110 mm
-channel x: alle 20er erfunden.
 channel_x: inlet_1_1-mixing_1: 9.662 mm
 channel_x: inlet_1_2-mixing_1: 9.294 mm
 channel_x: inlet_1_3-mixing_1: 9.711 mm
 channel_x: mixing_1-meander_1: 3.340 mm
-channel_x: meander_1: 1622.670 mm
+channel_x: meander_1-meander_1: 1622.670 mm
 channel_x: meander_1-outlet: 2.831 mm
 channel_x: meander_1-mixing_2: 0 mm
 channel_x: inlet_2_1: 0 mm
@@ -21,13 +20,13 @@ channel_x: inlet_2_2: 0 mm
 channel_x: inlet_2_1-mixing_2: 0 mm
 channel_x: inlet_2_2-mixing_2: 0 mm
 channel_x: mixing_2-meander: 0 mm
-channel_x: meander_2: 0 mm
+channel_x: meander_2-meander_2: 0 mm
 channel_x: meander_2-outlet: 0 mm
 channel_y: inlet_1_1-mixing_1: 0.05 mm
 channel_y: inlet_1_2-mixing_1: 0.1 mm
 channel_y: inlet_1_3-mixing_1: 0.05 mm
 channel_y: mixing_1-meander_1: 0.1 mm
-channel_y: meander_1: 0.1 mm
+channel_y: meander_1-meander_1: 0.1 mm
 channel_y: meander_1-outlet: 0.1 mm
 channel_y: meander_1-mixing_2: 0 mm
 channel_y: inlet_2_1: 0 mm
@@ -35,7 +34,6 @@ channel_y: inlet_2_2: 0 mm
 channel_y: inlet_2_1-mixing_2: 0 mm
 channel_y: inlet_2_2-mixing_2: 0 mm
 channel_y: mixing_2-meander: 0 mm
-channel_y: meander_2: 0 mm
+channel_y: meander_2-meander_2: 0 mm
 channel_y: meander_2-outlet: 0 mm
 channel_z: 0,072
-

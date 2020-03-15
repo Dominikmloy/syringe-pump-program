@@ -105,7 +105,7 @@ ramping.writing(phase_number,
                 LA160=pumps_setup.dict_pump_instances["LA160"])
 
 # -- mixing --
-mixing = m_c.Mixing(ramping_instance=ramping)
+mixing = m_c.Mixing(ramping_instance=ramping, setup_instance=pumps_setup)
 mixing.number_of_runs(runs=number_of_runs)
 mixing.rate(pumps_setup.pumps_active,
             LA120_rate=Flow_rates_LA120,
@@ -118,13 +118,12 @@ mixing.volume(pumps_setup.pumps_active,
               LA120=volumes_LA120,
               LA122=volumes_LA122,
               LA160=volumes_LA160)
-mixing.overlap(overlap=overlap_runs)
+mixing.overlap_calc(overlap=overlap_runs)
 mixing.end_process(pumps_setup.channel,
                    pumps_setup.pumps_active,
                    purging_pumps=pumps_for_purging)
 
 mixing.writing(pumps_setup.dict_pump_instances,
-               pumps_setup.channel,
                pumps_setup.pumps_active,
                phase_number)
 mixing.mixing(pumps_setup.channel_used,
