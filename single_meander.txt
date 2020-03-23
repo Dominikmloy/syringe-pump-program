@@ -1,7 +1,7 @@
 inlets_number: 3
 outlets_number: 1
 meanders_number: 1
-interface_diameter: 0.5 mm
+interface_diameter: 0.38 mm
 inlet_diameter: 0.38 mm
 outlet_diameter: 0.38 mm
 tubing_x: inlet_1_1: 110 mm

@@ -37,7 +37,7 @@ class Ramping(object):
         self.channel = channel
         self.max_flowrate = 0
         self.total_flowrate = 0
-        self.mean_flowrate = 0
+        self.mean_flowrate = 350
         self.pump_configuration_n = {}  # Holds the numbers of syringes per pump, e.g., LA120: 2
         self.pump_configuration_syr = {}  # Holds the syringe's type per pump, e.g., LA120: Hamilton_1710TLL-XL_0.1ml
         self.dict_tubing_volume = {}  # Holds the channel's inlets and their resp. volumes [ul], e.g., inlet_1_1: 12
@@ -410,7 +410,6 @@ class Ramping(object):
         # mean flow rate is set manually to decrease the possibility of damaging the channel
         # due to very high flow rates. former code: sum(ramping_list)/float(len(ramping_list))
         # problem: intermediate flow rates too high.
-        self.mean_flowrate = 350
         self.ramping_time = channel.volume_tubing("inlet_1_1")/self.mean_flowrate * 3600
         p.logger_pump.debug("Mean flow rate: {}".format(self.mean_flowrate))
         p.logger_pump.debug("Total flow rate: {}".format(self.total_flowrate))

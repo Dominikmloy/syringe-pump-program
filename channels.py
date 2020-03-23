@@ -17,6 +17,10 @@ class Channel(object):
         Holds all variables associated with the target channel. It automatically calculates the total volume
         of the channel + the volume of all inlets and outlets and stores it in the variable self.volume_total.
         """
+        self.channel = ""
+        for key in channel_dict.keys():
+            if channel_dict[key] == filename:
+                self.channel = key
         self.max_flowrate = 1500
         self.volume_total = 0
         self.channel_volume = 0
@@ -29,7 +33,7 @@ class Channel(object):
             else:
                 # calculate total interface volume
                 for key in self.tubing_x:
-                    self.interface_volume += self.tubing_x[key] * math.pi * self.interface_diameter ** 2
+                    self.interface_volume += self.tubing_x[key] * math.pi * (self.interface_diameter / 2) ** 2
                 # Calculate the volume of each segment of the channel.
                 # Sum them up to get the total channel volume
                 for key in self.channel_x:

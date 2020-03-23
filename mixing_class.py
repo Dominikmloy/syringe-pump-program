@@ -39,6 +39,9 @@ class Mixing(object):
         self.end_time = 0  # time that is needed to flush the final product
         # from the channel
         self.channel_used = 0
+        # define the two groups that should not be used together for purging
+        self.inlet_group_1 = ["inlet_1_1", "inlet_1_2", "inlet_1_3"]
+        self.inlet_group_2 = ["inlet_2_1", "inlet_2_2"]
         self.dict_rates_pumps = {}  # holds the flow rates of the first run
         self.units_dict = {"\u03BCl/min": "um", "\u03BCl/m": "um", "\u03BC/min": "um",
                            "ml/min": "mm", "ml/m": "mm", "m/min": "mm",
@@ -167,11 +170,11 @@ class Mixing(object):
             for i in range(self.runs):
                 flow_rate = 0
                 if len(self.rates_LA120) > 0:
-                    flow_rate += self.rates_LA120[i]
+                    flow_rate += self.rates_LA120[i] * self.pump_configuration_n["LA120"]
                 if len(self.rates_LA122) > 0:
-                    flow_rate += self.rates_LA122[i]
+                    flow_rate += self.rates_LA122[i] * self.pump_configuration_n["LA122"]
                 if len(self.rates_LA160) > 0:
-                    flow_rate += self.rates_LA160[i]
+                    flow_rate += self.rates_LA160[i] * self.pump_configuration_n["LA160"]
                 p.logger_pump.debug("Total flow rate of run {}: {}".format(i + 1, flow_rate))
 
                 if flow_rate > self.setup.max_flowrate:
@@ -476,7 +479,7 @@ class Mixing(object):
                 self.overlap = float(overlap)
                 p.logger_pump.info("Overlap: {}".format(self.overlap))
             except ValueError:
-                error_message(3, "Flow rate must be a number (int or float).")
+                error_message(1, "Flow rate must be a number (int or float).")
 
             # calculate relative overlap for each pump
         def _relative_overlap_calc(rates_list):
@@ -565,6 +568,9 @@ class Mixing(object):
         Alternatively, the pumps purging the channel can be passed to the function via the kwargs.
         The name of the keyword must be 'purging_pumps', and the argument must be a
         list of the target pumps. For example: purging_pumps = ['LA120', 'LA160']
+        Attention: Only pumps serving the mixing zone one OR mixing zone two (in case of the double
+        meander channel) can be chosen. If the pumps serving mixing zone two are chosen, the channel
+        is only purged from the second mixing zone.
         """
 
         def error_message(error_number, additional_info):
@@ -582,11 +588,6 @@ class Mixing(object):
                                 "Function 'purging_pumps()' aborted",
                                 " due to errors in the kwargs: {}.".format(purging_pumps))
             raise SystemExit("Program aborted.")
-
-        # volume to be purged from the channels.
-        volume = round(channels_instance.channel_volume
-                       - channels_instance.volume_to_mixing_1()
-                       + channels_instance.volume_tubing("outlet"), 2)
 
         pumps_end_process = []
         if purging_pumps:
@@ -607,8 +608,8 @@ class Mixing(object):
 
             if "y" in answer.lower():
                 print("""Which pump(s) will pump the product of the final mixing
-                run ({} \u03BCl)?
-                Choose one or more numbers:""".format(volume))
+                run (that means: purge the channel)?
+                Choose one or more numbers:""")
                 if pumps_active["LA120"]:
                     print("1: LA120")
                 if pumps_active["LA122"]:
@@ -634,19 +635,102 @@ class Mixing(object):
             last_flowrate = []
             transformation_dict = self.unit_conversion(self.dict_units_pumps)
             p.logger_pump.debug("transformation dict", self.dict_units_pumps, transformation_dict)
-            if self.rates_LA120:
-                last_flowrate.append(self.rates_LA120[-1]
-                                     * transformation_dict["LA120"]
-                                     * self.pump_configuration_n["LA120"]
-                                     )
-            if self.rates_LA122:
-                last_flowrate.append(self.rates_LA122[-1]
-                                     * transformation_dict["LA122"]
-                                     * self.pump_configuration_n["LA122"])
-            if self.rates_LA160:
-                last_flowrate.append(self.rates_LA160[-1]
-                                     * transformation_dict["LA160"]
-                                     * self.pump_configuration_n["LA160"])
+
+            # make a list of the inlets connected to the pumps that will purge the channel.
+            pumps_inlets = []
+            for pump in pumps_end_process:
+                for inlet in self.dict_inlets_pumps.keys():
+                    if pump == self.dict_inlets_pumps[inlet]:
+                        pumps_inlets.append(inlet)
+            # check if pumps for purging are from one group only
+            if any(i in self.inlet_group_1 for i in pumps_inlets) and any(i in self.inlet_group_2 for i in pumps_inlets):
+                text = "Either the pumps serving the first or the pumps " + \
+                       "serving the second mixing zone can be used for purging."
+                if purging_pumps:
+                    error_message(2, text)
+                else:
+                    print(text, "\nPlease repeat the selection process.")
+                    return self.end_process(channels_instance, pumps_active)
+
+            def get_total_last_flowrate(inlet):
+                """ Function to avoid copying code. The function returns the last flow rate in ul/s
+                of the pump that is connected to the inlet specified as function argument. """
+                if self.dict_inlets_pumps[inlet] == "LA120":
+                    return self.rates_LA120[-1] * transformation_dict["LA120"]
+                elif self.dict_inlets_pumps[inlet] == "LA122":
+                    return self.rates_LA122[-1] * transformation_dict["LA122"]
+                elif self.dict_inlets_pumps[inlet] == "LA160":
+                    return self.rates_LA160[-1] * transformation_dict["LA160"]
+
+            # self.inlet_group_1: Inlets that serve the first mixing zone -> will purge the complete channel
+            if all(i in self.inlet_group_1 for i in pumps_inlets):
+                # volume to be purged from the channels.
+                # e.g., single meander channel
+                volume = round(channels_instance.channel_volume
+                               - channels_instance.volume_to_mixing_1()
+                               + channels_instance.volume_tubing("outlet"), 2)
+                for inlet in self.dict_inlets_pumps:
+                    if inlet in self.inlet_group_1:
+                        last_flowrate.append(get_total_last_flowrate(inlet))
+
+            # self.inlet_group_2: Inlets that serve the 2nd mixing zone
+            # -> will purge the channel only from the second mixing zone.
+            if all(i in self.inlet_group_2 for i in pumps_inlets):
+                # volume to be purged from the channels.
+                # eg., double meander channel: only the volume after the second mixing zone is purged.
+                volume = round(channels_instance.channel_volume
+                               - channels_instance.volume_to_mixing_2()
+                               + channels_instance.volume_tubing("outlet"), 2)
+
+                # the additional volume the pumps connected to the self.inlet_group_1 need to pump in order to
+                # send the last run's complete product to mixing zone 2.
+                volume_to_mixing_2 = round(channels_instance.volume_to_mixing_2()
+                                           - channels_instance.volume_to_mixing_1())
+                pumps_pumping_mixing_2 = {}
+                pumps_pumping_mixing_2_flow_rate = 0
+
+                for inlet in self.inlet_group_1:
+                    if inlet in self.dict_inlets_pumps.keys():
+                        pumps_pumping_mixing_2_flow_rate += get_total_last_flowrate(inlet)
+                        if self.dict_inlets_pumps[inlet] not in pumps_pumping_mixing_2.keys():
+                            pumps_pumping_mixing_2[self.dict_inlets_pumps[inlet]] = get_total_last_flowrate(inlet)
+
+                # add pumps serving inlet group 1 to the last flow rate dict.
+                if "LA120" in pumps_pumping_mixing_2.keys():
+                    self.dict_last_flowrate["LA120"] = round(pumps_pumping_mixing_2["LA120"]
+                                                             / transformation_dict["LA120"]
+                                                             / self.pump_configuration_n["LA120"],
+                                                             3)
+                    self.dict_last_volume["LA120"] = round(volume_to_mixing_2
+                                                           * pumps_pumping_mixing_2["LA120"]
+                                                           / pumps_pumping_mixing_2_flow_rate
+                                                           / self.pump_configuration_n["LA120"],
+                                                           3)
+                if "LA122" in pumps_pumping_mixing_2.keys():
+                    self.dict_last_flowrate["LA122"] = round(pumps_pumping_mixing_2["LA122"]
+                                                             / transformation_dict["LA122"]
+                                                             / self.pump_configuration_n["LA122"],
+                                                             3)
+                    self.dict_last_volume["LA122"] = round(volume_to_mixing_2
+                                                           * pumps_pumping_mixing_2["LA122"]
+                                                           / pumps_pumping_mixing_2_flow_rate
+                                                           / self.pump_configuration_n["LA122"],
+                                                           3)
+                if "LA160" in pumps_pumping_mixing_2.keys():
+                    self.dict_last_flowrate["LA160"] = round(pumps_pumping_mixing_2["LA160"]
+                                                             / transformation_dict["LA160"]
+                                                             / self.pump_configuration_n["LA160"],
+                                                             3)
+                    self.dict_last_volume["LA160"] = round(volume_to_mixing_2
+                                                           * pumps_pumping_mixing_2["LA160"]
+                                                           / pumps_pumping_mixing_2_flow_rate
+                                                           / self.pump_configuration_n["LA160"],
+                                                           3)
+
+                # I want the pump in group 2 to pump with the total flow rate of the last run
+                for inlet in self.dict_inlets_pumps.keys():
+                    last_flowrate.append(get_total_last_flowrate(inlet))
+
             last_flowrate_sum = sum(last_flowrate)
             rate_per_pump = last_flowrate_sum / len(pumps_end_process)
             # write the time for flushing the final product from the channel
@@ -817,11 +901,180 @@ class Mixing(object):
         elif pumps_active["LA160"]:
             pump_instance = dict_pump_instances["LA160"]
 
+        def total_V_FR_calculation(inlet_group):
+            """
+            This function calculates the total flow rate and total volume associated with
+            each event from self.name.
+            """
+            # get the conversion factors for the various pumps
+            total_V = []
+            total_FR = []
+            conversion_rate = self.unit_conversion(self.dict_units_pumps)
+            conversion_volume = {}
+            for key in conversion_rate.keys():
+                if conversion_rate[key] == 60 or conversion_rate[key] == 1:
+                    conversion_volume[key] = 1
+                elif conversion_rate[key] == 60000 or conversion_rate[key] == 1000:
+                    conversion_volume[key] = 1000
+            p.logger_pump.debug("conversions: ", conversion_rate, conversion_volume)
+            pumps_in_inlet_group = []
+            for inlet in inlet_group:
+                if inlet in self.dict_inlets_pumps.keys():
+                    pumps_in_inlet_group.append(self.dict_inlets_pumps[inlet])
+            if "LA120" in pumps_in_inlet_group:
+                for i in range(len(self.volumes_LA120)):
+                    vol = (self.volumes_LA120[i]
+                           * self.pump_configuration_n["LA120"]
+                           * conversion_volume["LA120"])
+                    rat = (self.rates_LA120[i]
+                           * self.pump_configuration_n["LA120"]
+                           * conversion_rate["LA120"])
+                    if "LA122" in pumps_in_inlet_group:
+                        vol += (self.volumes_LA122[i]
+                                * self.pump_configuration_n["LA122"]
+                                * conversion_volume["LA122"])
+                        rat += (self.rates_LA122[i]
+                                * self.pump_configuration_n["LA122"]
+                                * conversion_rate["LA122"])
+                    if "LA160" in pumps_in_inlet_group:
+                        vol += (self.volumes_LA160[i]
+                                * self.pump_configuration_n["LA160"]
+                                * conversion_volume["LA160"])
+                        rat += (self.rates_LA160[i]
+                                * self.pump_configuration_n["LA160"]
+                                * conversion_rate["LA160"])
+                    total_V.append(vol)
+                    total_FR.append(rat)
+
+            elif "LA122" in pumps_in_inlet_group:
+                for i in range(len(self.volumes_LA122)):
+                    vol = (self.volumes_LA122[i]
+                           * self.pump_configuration_n["LA122"]
+                           * conversion_volume["LA122"])
+                    rat = (self.rates_LA122[i]
+                           * self.pump_configuration_n["LA122"]
+                           * conversion_rate["LA122"])
+                    if "LA160" in pumps_in_inlet_group:
+                        vol += (self.volumes_LA160[i]
+                                * self.pump_configuration_n["LA160"]
+                                * conversion_volume["LA160"])
+                        rat += (self.rates_LA160[i]
+                                * self.pump_configuration_n["LA160"]
+                                * conversion_rate["LA160"])
+                    total_V.append(vol)
+                    total_FR.append(rat)
+
+            elif "LA160" in pumps_in_inlet_group:
+                for i in range(len(self.volumes_LA160)):
+                    total_V.append(self.volumes_LA160[i]
+                                   * self.pump_configuration_n["LA160"]
+                                   * conversion_volume["LA160"]
+                                   )
+                    total_FR.append(self.rates_LA160[i]
+                                    * self.pump_configuration_n["LA160"]
+                                    * conversion_rate["LA160"])
+
+            # append purging
+            if self.dict_last_flowrate:
+                last_volume = 0
+                last_rate = 0
+                for key in self.dict_last_volume.keys():
+                    if key in pumps_in_inlet_group:
+                        last_volume += self.dict_last_volume[key] * self.pump_configuration_n[key]
+                for key in self.dict_last_flowrate.keys():
+                    if key in pumps_in_inlet_group:
+                        last_rate += self.dict_last_flowrate[key] * self.pump_configuration_n[key]
+                p.logger_pump.debug("last rate, volume: ", last_rate, last_volume)
+                total_V.append(last_volume)
+                total_FR.append(last_rate)
+
+            else:
+                # 0 is appended in order to avoid a out of range error
+                # when lists are passed to the countdown function.
+                total_V.append(0)
+                total_FR.append(0)
+            return total_V, total_FR
+
+        def collecting_calculation():
+            """
+            This function calculates the discharge's duration of each product fraction
+            from the outlet. Since the product needs some time to reach the outlet,
+            the total flow rate might change during the discharge process, changing the
+            time that is needed for discharging the complete product fraction.
+            """
+            i = 0
+            transfer = 0
+            while i < len(total_V) - 1:  # if dead volume < run 1
+                if total_v_outlet[0] <= total_V[0]:
+                    if i == 0:
+                        self.time_list.append(round(total_v_outlet[0] / total_FR[i] * 3600, 2))
+                    vol_1 = total_V[i] - total_v_outlet[0]
+                    vol_2 = total_V[i] - vol_1
+                    self.time_list.append(round((vol_1 / total_FR[i] + vol_2 / total_FR[i + 1]) * 3600, 2))
+                    print("vol_1: {}\nvol_2: {}\ntime list: {}".format(vol_1, vol_2, self.time_list))
+                    i += 1
+                else:  # if total_V[0] > total_V_outlet[0]
+                    j = len(self.time_list)
+                    if j == 0:
+                        rest = total_v_outlet[j] - total_V[j]
+                        self.time_list.append(round(total_V[j] / total_FR[j] * 3600, 2))
+                        print("48: ", i, j, self.time_list)
+
+                    else:
+                        if transfer < total_v_outlet[j]:
+                            self.time_list.append(round(transfer / total_FR[i] * 3600, 2))
+                            print("52: ", i, j, self.time_list)
+                            rest = total_v_outlet[j] - transfer  # belongs to self.time_list [-1]
+                        else:  # transfer > total_v_outlet
+                            self.time_list.append(round(total_v_outlet[j] / total_FR[i] * 3600, 2))
+                            print("56: ", i, j, self.time_list)
+                            rest = transfer - total_v_outlet[j]  # belongs to self.time_list [-1]
+
+                    while rest != 0:
+                        i += 1
+                        if rest >= total_V[i]:
+                            self.time_list[j] = self.time_list[j] + round(total_V[i] / total_FR[i] * 3600, 2)
+                            print("62: ", i, j, self.time_list)
+                            rest -= total_V[i]
+                        else:
+                            self.time_list[j] = self.time_list[j] + round(rest / total_FR[i] * 3600, 2)
+                            print("66: ", i, j, self.time_list)
+                            transfer = total_V[i] - rest  # the rest of the volume when the waste collection is over
+                            rest = 0
+
+                    # if j > 0:
+                    if i == len(total_V) - 1:
+                        while j < i:
+                            j += 1
+                            self.time_list.append(round(total_v_outlet[j] / total_FR[i] * 3600, 2))
+                            print("84: ", i, j, self.time_list)
+
+        def collecting_calculation_2():
+            i = 0
+            for volume in total_v_outlet:
+                duration = 0
+                rest = volume  # wie gehe ich mit dem overlap um?
+                print("105: ", rest)
+                while rest > 0:
+                    if rest >= total_V[i]:
+                        duration += total_V[i] / total_FR[i] * 3600
+                        rest -= total_V[i]
+                        print(
+                            "109: {}\nV: {}, FR: {}\nrest: {}, duration: {}, ".format(i, total_V[i], total_FR[i], rest,
+                                                                                      duration))
+                        i += 1
+                    elif rest < total_V[i]:
+                        duration += rest / total_FR[i] * 3600
+                        total_V[i] = total_V[i] - rest
+                        rest = 0
+                        print("115: {}\nV: {}, FR: {}, duration: {}, ".format(i, total_V[i], total_FR[i], duration))
+                self.time_list.append(duration)
+
         # Depending on the channel used, different parts of the code need to be executed.
         if channel_used == "Single meander channel":  # from main.py select_channel()
-            pump_instance.start_all(pumps_active, pumps_adr)
+            print("pump_instance.start_all ", pumps_active, pumps_adr)
             if ramping_time > 0:  # surrogate test if the ramping class was instantiated before.
-                countdown(ramping_time, "ramping:")
+                print(ramping_time, "ramping:")  # countdown
             # calculate the dead volume of the channel: volume of the complete channel +
             # volume of the outlet - volume of the channels leading to the mixing zone.
             dead_volume = (channel_instance.channel_volume
@@ -833,236 +1086,161 @@ class Mixing(object):
             self.name.insert(0, "waste")
             print("dead volume: ", dead_volume)
 
-            def total_V_FR_calculation():
-                """
-                This function calculates the total flow rate and total volume associated with
-                each event from self.name.
-                """
-                # get the conversion factors for the various pumps
-                conversion_rate = self.unit_conversion(self.dict_units_pumps)
-                conversion_volume = {}
-                for key in conversion_rate.keys():
-                    if conversion_rate[key] == 60 or conversion_rate[key] == 1:
-                        conversion_volume[key] = 1
-                    elif conversion_rate[key] == 60000 or conversion_rate[key] == 1000:
-                        conversion_volume[key] = 1000
-                print("conversions: ", conversion_rate, conversion_volume)
-                if self.volumes_LA120:
-                    for i in range(len(self.volumes_LA120)):
-                        vol = (self.volumes_LA120[i]
-                               * self.pump_configuration_n["LA120"]
-                               * conversion_volume["LA120"])
-                        rat = (self.rates_LA120[i]
-                               * self.pump_configuration_n["LA120"]
-                               * conversion_rate["LA120"])
-                        if self.volumes_LA122:
-                            vol += (self.volumes_LA122[i]
-                                    * self.pump_configuration_n["LA122"]
-                                    * conversion_volume["LA122"])
-                            rat += (self.rates_LA122[i]
-                                    * self.pump_configuration_n["LA122"]
-                                    * conversion_rate["LA122"])
-                        if self.volumes_LA160:
-                            vol += (self.volumes_LA160[i]
-                                    * self.pump_configuration_n["LA160"]
-                                    * conversion_volume["LA160"])
-                            rat += (self.rates_LA160[i]
-                                    * self.pump_configuration_n["LA160"]
-                                    * conversion_rate["LA160"])
-                        total_V.append(vol)
-                        total_FR.append(rat)
-
-                elif self.volumes_LA122:
-                    for i in range(len(self.volumes_LA122)):
-                        vol = (self.volumes_LA122[i]
-                               * self.pump_configuration_n["LA122"]
-                               * conversion_volume["LA122"])
-                        rat = (self.rates_LA122[i]
-                               * self.pump_configuration_n["LA122"]
-                               * conversion_rate["LA122"])
-                        if self.volumes_LA160:
-                            vol += (self.volumes_LA160[i]
-                                    * self.pump_configuration_n["LA160"]
-                                    * conversion_volume["LA160"])
-                            rat += (self.rates_LA160[i]
-                                    * self.pump_configuration_n["LA160"]
-                                    * conversion_rate["LA160"])
-                        total_V.append(vol)
-                        total_FR.append(rat)
-
-                elif self.volumes_LA160:
-                    for i in range(len(self.volumes_LA160)):
-                        total_V.append(self.volumes_LA160[i]
-                                       * self.pump_configuration_n["LA160"]
-                                       * conversion_volume["LA160"]
-                                       )
-                        total_FR.append(self.rates_LA160[i]
-                                        * self.pump_configuration_n["LA160"]
-                                        * conversion_rate["LA160"])
-
-                # append purging
-                if self.dict_last_flowrate:
-                    last_volume = 0
-                    last_rate = 0
-                    for value in self.dict_last_flowrate.values():
-                        last_volume += value
-                    for value in self.dict_last_flowrate.values():
-                        last_rate += value
-                    total_V.append(last_volume)
-                    total_FR.append(last_rate)
-
-                else:
-                    # 0 is appended in order to avoid the out of range error
-                    # when lists are passed to the countdown function.
-                    total_V.append(0)
-                    total_FR.append(0)
-
-            def collecting_calculation():
-                """
-                This function calculates the discharge's duration of each product fraction
-                from the outlet. Since the product needs some time to reach the outlet,
-                the total flow rate might change during the discharge process, changing the
-                time that is needed for discharging the complete product fraction.
-                """
-                i = 0
-                transfer = 0
-                while i < len(total_V) - 1:  # if dead volume < run 1
-                    if total_v_outlet[0] <= total_V[0]:
-                        if i == 0:
-                            self.time_list.append(round(total_v_outlet[0] / total_FR[i] * 3600, 2))
-                        vol_1 = total_V[i] - total_v_outlet[0]
-                        vol_2 = total_V[i] - vol_1
-                        self.time_list.append(round((vol_1 / total_FR[i] + vol_2 / total_FR[i + 1]) * 3600, 2))
-                        print("vol_1: {}\nvol_2: {}\ntime list: {}".format(vol_1, vol_2, self.time_list))
-                        i += 1
-                    else:  # if total_V[0] > total_V_outlet[0]
-                        j = len(self.time_list)
-                        if j == 0:
-                            rest = total_v_outlet[j] - total_V[j]
-                            self.time_list.append(round(total_V[j] / total_FR[j] * 3600, 2))
-                            print("48: ", i, j, self.time_list)
-
-                        else:
-                            if transfer < total_v_outlet[j]:
-                                self.time_list.append(round(transfer / total_FR[i] * 3600, 2))
-                                print("52: ", i, j, self.time_list)
-                                rest = total_v_outlet[j] - transfer  # belongs to self.time_list [-1]
-                            else:  # transfer > total_v_outlet
-                                self.time_list.append(round(total_v_outlet[j] / total_FR[i] * 3600, 2))
-                                print("56: ", i, j, self.time_list)
-                                rest = transfer - total_v_outlet[j]  # belongs to self.time_list [-1]
-
-                        while rest != 0:
-                            i += 1
-                            if rest >= total_V[i]:
-                                self.time_list[j] = self.time_list[j] + round(total_V[i] / total_FR[i] * 3600, 2)
-                                print("62: ", i, j, self.time_list)
-                                rest -= total_V[i]
-                            else:
-                                self.time_list[j] = self.time_list[j] + round(rest / total_FR[i] * 3600, 2)
-                                print("66: ", i, j, self.time_list)
-                                transfer = total_V[i] - rest  # the rest of the volume when the waste collection is over
-                                rest = 0
-
-                        if i == len(total_V) - 1:
-                            while j < i:
-                                j += 1
-                                self.time_list.append(round(total_v_outlet[j] / total_FR[i] * 3600, 2))
-                                print("84: ", i, j, self.time_list)
-
-            total_V = []
-            total_FR = []
+            total_V = total_V_FR_calculation(self.inlet_group_1)[0]
+            total_FR = total_V_FR_calculation(self.inlet_group_1)[1]
             total_v_outlet = total_V[:-1]
             total_v_outlet.insert(0, dead_volume)
 
-            total_V_FR_calculation()
-            print("total_V: ", total_V)
-            print("total_FR: ", total_FR)
+            p.logger_pump.debug("total_V: ", total_V)
+            p.logger_pump.debug("total_FR: ", total_FR)
+            p.logger_pump.debug("total_v_outlet: ", total_v_outlet)
             collecting_calculation()
 
             for i in range(len(self.name[:-1])):
                 countdown(self.name[i], self.time_list[i])
 
         elif channel_used == "Double meander channel":
+
+            def error_message(error_number, additional_info):
+                """ nested function that defines the error message to be given when the
+                kwargs are wrong. Additional information about the error can be given
+                vie the second argument"""
+                print("Error number: {}".format(error_number),
+                      "\nAn error has occurred in the 'mixing()' function.",
+                      "\nAdditional info:", additional_info,
+                      "\nProgram aborted.")
+                print("Error message {}: ".format(error_number),  # p.logger_pump.debug
+                      "Function 'mixing()' aborted.",
+                      "\nAdditional info: {}.".format(additional_info))
+                raise SystemExit("Program aborted.")
+
+            # assign pump instances to inlets to enable the starting of the pumps at different time points.
+            pump_inlet_1_2 = None
+            pump_inlet_2_2 = None
+            pump_inlet_1_1 = dict_pump_instances[self.dict_inlets_pumps["inlet_1_1"]]
+            if self.dict_inlets_pumps["inlet_1_1"] != self.dict_inlets_pumps["inlet_1_2"]:
+                pump_inlet_1_2 = dict_pump_instances[self.dict_inlets_pumps["inlet_1_2"]]
+
+            # one pump is not supposed to serve both inlets leading to separate mixing zones at the same time.
+            # therefore, pump_inlet_2 cannot be the same as pump_inlet_1.
+            pump_inlet_2_1 = dict_pump_instances[self.dict_inlets_pumps["inlet_2_1"]]
+            if self.dict_inlets_pumps["inlet_2_1"] != self.dict_inlets_pumps["inlet_2_2"]:
+                pump_inlet_2_2 = dict_pump_instances[self.dict_inlets_pumps["inlet_2_2"]]
+
+            # check, if pumps are wired correctly.
+            if pump_inlet_1_1 == pump_inlet_2_1 or pump_inlet_1_1 == pump_inlet_2_2:
+                add_info = "\nOne pump cannot be connected to inlet_1_1 and inlet_2_1 or inlet_2_2 at the same time"
+                error_message(1, add_info)
+            if pump_inlet_1_2 == pump_inlet_2_1 or pump_inlet_1_2 == pump_inlet_2_2:
+                add_info = "\nOne pump cannot be connected to inlet_1_2 and inlet_2_1 or inlet_2_2 at the same time"
+                error_message(2, add_info)
+
             # calculate the dead volume
+            ramping_volume = channel_instance.volume_tubing("inlet_1_1")
             volume_to_mixing_2 = channel_instance.volume_to_mixing_2()
             volume_mixing_2_to_outlet = (channel_instance.volume_channel_section("mixing_2-meander_2")
                                          + channel_instance.volume_channel_section("meander_2-meander_2")
                                          + channel_instance.volume_channel_section("meander_2-outlet")
                                          + channel_instance.volume_tubing("outlet")
                                          )
-            # self.dict_inlets_pumps = {}  # holds {'inlet_1_1': 'LA160', 'inlet_1_2': 'LA120', 'inlet_1_3': 'LA160'}
-            # self.dict_units_pumps = {}  # holds {'LA120': 'ul/h', 'LA160': 'ul/h'}
-            if dict_rate_pumps:
-                self.dict_rates_pumps = dict_rate_pumps
+            dead_volume = volume_to_mixing_2 + volume_mixing_2_to_outlet
+            p.logger_pump.debug("ramping volume: {}\nvolume to mixing 2: ".format(ramping_volume),
+                                "{}\nvolume mixing 2 to outlet: {}".format(volume_to_mixing_2,
+                                                                           volume_mixing_2_to_outlet))
 
-            # calculate time reactants need to get to the second inlet
-            # convert time to seconds in dict_rates_pumps
-            if "h" in self.dict_units_pumps[self.dict_inlets_pumps["inlet_1_1"]]:
-                rate_pump_inlet_11 = self.dict_rates_pumps[self.dict_inlets_pumps["inlet_1_1"]] / 3600  # change vol / sec
-            elif "min" in self.dict_units_pumps[self.dict_inlets_pumps["inlet_1_1"]]:
-                rate_pump_inlet_11 = self.dict_rates_pumps[self.dict_inlets_pumps["inlet_1_1"]] / 60  # change vol / sec
-            if "h" in self.dict_units_pumps[self.dict_inlets_pumps["inlet_1_2"]]:
-                rate_pump_inlet_12 = self.dict_rates_pumps[self.dict_inlets_pumps["inlet_1_2"]] / 3600  # change vol / sec
-            elif "min" in self.dict_units_pumps[self.dict_inlets_pumps["inlet_1_2"]]:
-                rate_pump_inlet_12 = self.dict_rates_pumps[self.dict_inlets_pumps["inlet_1_2"]] / 60  # change vol / sec
-            if "h" in self.dict_units_pumps[self.dict_inlets_pumps["inlet_2_1"]]:
-                rate_pump_inlet_21 = self.dict_rates_pumps[self.dict_inlets_pumps["inlet_2_1"]] / 3600  # change vol / sec
-            elif "min" in self.dict_units_pumps[self.dict_inlets_pumps["inlet_2_1"]]:
-                rate_pump_inlet_21 = self.dict_rates_pumps[self.dict_inlets_pumps["inlet_2_1"]] / 60  # change vol / sec
-            if "h" in self.dict_units_pumps[self.dict_inlets_pumps["inlet_2_2"]]:
-                rate_pump_inlet_22 = self.dict_rates_pumps[self.dict_inlets_pumps["inlet_2_2"]] / 3600  # change vol / sec
-            elif "min" in self.dict_units_pumps[self.dict_inlets_pumps["inlet_2_2"]]:
-                rate_pump_inlet_22 = self.dict_rates_pumps[self.dict_inlets_pumps["inlet_2_2"]] / 60  # change vol / sec
+            self.name.insert(0, "Waste (channel)")
+            self.name.insert(0, "Waste (ramping)")
+            p.logger_pump.debug("dead volumes: ", volume_to_mixing_2, volume_mixing_2_to_outlet)
+            p.logger_pump.debug("name: ", self.name)
 
-            time_to_mixing_2 = round(volume_to_mixing_2 / (rate_pump_inlet_11 + rate_pump_inlet_12))
+            total_V_group1 = total_V_FR_calculation(self.inlet_group_1)[0]
+            total_FR_group1 = total_V_FR_calculation(self.inlet_group_1)[1]
+            total_V_group2 = total_V_FR_calculation(self.inlet_group_2)[0]
+            total_FR_group2 = total_V_FR_calculation(self.inlet_group_2)[1]
 
-            # calculate time reactants need to get to the outlet
-            time_to_outlet = round(volume_mixing_2_to_outlet / (rate_pump_inlet_11 +
-                                                                rate_pump_inlet_12 +
-                                                                rate_pump_inlet_21 +
-                                                                rate_pump_inlet_22
-                                                                ))
-            p.logger_pump.debug("""time to mixing 2: {} s
-                                time to outlet: {} s""".format(time_to_mixing_2,
-                                                               time_to_outlet))
+            # create a list of the volumes to be gathered at the outlet.
+            total_v_outlet = [ramping_volume, dead_volume]
+            for i in range(self.runs + self.runs - 1):  # number of runs + number of overlaps
+                all_volumes = 0
+                if self.volumes_LA120:
+                    all_volumes += self.volumes_LA120[i]*self.pump_configuration_n["LA120"]
+                if self.volumes_LA122:
+                    all_volumes += self.volumes_LA122[i]*self.pump_configuration_n["LA122"]
+                if self.volumes_LA160:
+                    all_volumes += self.volumes_LA160[i]*self.pump_configuration_n["LA160"]
+                total_v_outlet.append(all_volumes)  # zB total_v_run1, overlap, total_v_run2, overlap, total_v_run3
+            p.logger_pump.debug("total_v_outlet: ", total_v_outlet)
 
-            pump_instance.start_all(pumps_active, pumps_adr)
-            if ramping_time > 0:  # surrogate test if the ramping class was instantiated before.
-                countdown(ramping_time, "Waste: ramping:")
-                pump_inlet_2 = dict_pump_instances[self.dict_inlets_pumps["inlet_2_1"]]
-                pump_inlet_2.stop()
-                countdown(time_to_mixing_2, "Waste (mixing 1 -> mixing 2): ")
-                print("\n")
-                pump_inlet_2.start()
-                countdown(time_to_outlet, "Waste(mixing 2 -> outlet): ")
-                print("\n")
+            volume_to_mixing_2_time = volume_to_mixing_2 / total_FR_group1[0]*3600
+            p.logger_pump.debug("total vols: ", "\n", total_V_group1, "\n", total_V_group2)
+            p.logger_pump.debug("total FRs: ", "\n", total_FR_group1, "\n", total_FR_group2)
 
-            if self.rates_LA120:
-                for i in range(len(self.rates_LA120)):
-                    times = self.volumes_LA120[i] / self.rates_LA120[i]
-                    if "h" in self.dict_units_pumps["LA120"]:
-                        time_s = round(times * 3600)
-                    elif "min" in self.dict_units_pumps["LA120"]:
-                        time_s = round(times * 60)
-                    countdown(time_s, self.name[i])
-            elif self.rates_LA122:
-                for i in range(len(self.rates_LA122)):
-                    times = self.volumes_LA122[i] / self.rates_LA122[i]
-                    if "h" in self.dict_units_pumps["LA122"]:
-                        time_s = round(times * 3600)
-                    elif "min" in self.dict_units_pumps["LA122"]:
-                        time_s = round(times * 60)
-                    countdown(time_s, self.name[i])
-            elif self.rates_LA160:
-                for i in range(len(self.rates_LA160)):
-                    times = self.volumes_LA160[i] / self.rates_LA160[i]
-                    if "h" in self.dict_units_pumps["LA160"]:
-                        time_s = round(times * 3600)
-                    elif "min" in self.dict_units_pumps["LA160"]:
-                        time_s = round(times * 60)
-                    countdown(time_s, self.name[i])
-            countdown(self.end_time, "End run")
+            # calculate time points group 1 and group 2 in sec. and sort them in ascending order in a new list.
+            time_points_1 = [ramping_time]
+            time_points_2 = [volume_to_mixing_2_time,
+                             volume_to_mixing_2_time + ramping_time]
+
+            ramping_volume = self.ramping.mean_flowrate * ramping_time / 3600
+
+            # create a sorted list of all time points
+            for i in range(len(total_V_group1)):
+                time_points_1.append(time_points_1[i] + total_V_group1[i] / total_FR_group1[i] * 3600)
+            for i in range(len(total_V_group2)):
+                time_points_2.append(time_points_2[i + 1] + total_V_group2[i] / total_FR_group2[i] * 3600)
+            time_points_total = sorted(time_points_1 + time_points_2)
+
+            # insert the flow rates and volumes for the additional events
+            # (waiting and ramping) into total_V and total_FR of each group
+            # ramping
+            total_V_group2.insert(0, ramping_volume)
+            total_FR_group2.insert(0, self.ramping.mean_flowrate)
+            total_V_group1.insert(0, ramping_volume)
+            total_FR_group1.insert(0, self.ramping.mean_flowrate)
+            # waiting
+            total_V_group2.insert(0, 0)
+            total_FR_group2.insert(0, 0)
+            total_V_group1.append(0)
+            total_FR_group1.append(0)
+
+            # calculate total FR and Volumes for each time period
+            i, j = 0, 0
+            total_FR = []
+            total_V = []
+            prev_time = 0
+            for time in time_points_total:
+                div_time = time - prev_time
+                if time in time_points_1:
+                    total_FR.append(total_FR_group1[i] + total_FR_group2[j])
+                    total_V.append((total_FR_group1[i] + total_FR_group2[j]) * div_time / 3600)
+                    i += 1
+
+                if time in time_points_2:
+                    total_FR.append(total_FR_group1[i] + total_FR_group2[j])
+                    total_V.append((total_FR_group1[i] + total_FR_group2[j]) * div_time / 3600)
+                    j += 1
+                prev_time = time
+
+            # calculate the time points for collecting the product from the outlet
+            collecting_calculation_2()
+
+            # start pumps connected to inlets 1_1 and 1_2.
+            pump_inlet_1_1.start()
+            if pump_inlet_2_1:
+                pump_inlet_1_2.start()
+
+            for i in range(len(self.name[:-1])):
+                if i == 0:
+                    countdown(self.name[i], round(time_points_2[0]))
+                    p.logger_pump.debug(self.name[i], ":", round(time_points_2[0]))
+                    # start pumps connected to inlet 2_1 and inlet 2_2.
+                    pump_inlet_2_1.start()
+                    if pump_inlet_2_2:
+                        pump_inlet_2_2.start()
+                    countdown(self.name[i], round(self.time_list[i] - time_points_2[0]))  # countdown
+                    p.logger_pump.debug(self.name[i], ":", round(self.time_list[i] - time_points_2[0]))
+                else:
+                    countdown(self.name[i], ":", round(self.time_list[i]))
+                    p.logger_pump.debug(self.name[i], ":", round(self.time_list[i]))  # countdown
 
         else:
             print("""Either there is a spelling issue in the attribute 'channel_dict' in
