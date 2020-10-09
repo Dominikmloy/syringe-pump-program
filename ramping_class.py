@@ -97,7 +97,7 @@ class Ramping(object):
                   "Expected:\nname of active pumps: {}".format(self.print_dict_keys(list_active_pumps)),
                   "+ number of syringes in it.",
                   "\nProgram aborted.")
-            p.logger_pump.debug("Error message {}: ".format(number),
+            p.logger_pump.debug("Error message {}: ".format(error_number),
                                 "Function 'syringes_number()' aborted",
                                 " due to errors in the kwargs: {}.".format(kwargs))
             raise SystemExit("Program aborted.")

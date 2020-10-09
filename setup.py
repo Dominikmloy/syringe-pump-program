@@ -19,7 +19,6 @@ def countdown(t, name):
         t -= 1
     print("\n")
 
-
 class GlobalPhaseNumber(object):
     """ This class holds two classmethods to control the phase number. 'next' increases the
     phase number by +1, while 'reset' resets it to 0.
