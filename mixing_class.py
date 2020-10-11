@@ -73,8 +73,22 @@ class Mixing(object):
         key_list = []
         for key in dictionary:
             key_list.append(key)
-        string = ", ".join(key_list)
-        return string
+        key_string = ", ".join(key_list)
+        return key_string
+
+    @staticmethod
+    def dict_to_string(dictionary):
+        """
+        This function takes any dictionary as argument and returns
+        a string containing all key:value pairs separated by a comma.
+        :param dictionary:
+        :return: string in the format: key1: value1, key2: value2:, ...
+        """
+        dict_list = []
+        for key, value in dictionary.items():
+            dict_list.append(str(key) + ": " + str(value))
+        dict_string = ", ".join(dict_list)
+        return dict_string
 
     @staticmethod
     def unit_conversion(unit_dict):
@@ -634,7 +648,10 @@ class Mixing(object):
             self.name.append("purging")
             last_flowrate = []
             transformation_dict = self.unit_conversion(self.dict_units_pumps)
-            p.logger_pump.debug("transformation dict", self.dict_units_pumps, transformation_dict)
+            # transform dictionaries into strings for better logging
+            trans_string = self.dict_to_string(transformation_dict)
+            units_string = self.dict_to_string(self.dict_units_pumps)
+            p.logger_pump.debug("transformation dict", units_string, trans_string)
 
             # make a list of the inlets connected to the pumps that will purge the channel.
             pumps_inlets = []
