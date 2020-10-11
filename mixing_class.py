@@ -933,7 +933,10 @@ class Mixing(object):
                     conversion_volume[key] = 1
                 elif conversion_rate[key] == 60000 or conversion_rate[key] == 1000:
                     conversion_volume[key] = 1000
-            p.logger_pump.debug("conversions: ", conversion_rate, conversion_volume)
+            # transform the following dictionaries to strings for the logging function
+            conversion_rate_str = self.dict_to_string(conversion_rate)
+            conversion_volume_str = self.dict_to_string(conversion_volume)
+            p.logger_pump.debug("conversions: ", conversion_rate_str, conversion_volume_str)
             pumps_in_inlet_group = []
             for inlet in inlet_group:
                 if inlet in self.dict_inlets_pumps.keys():
@@ -1001,7 +1004,7 @@ class Mixing(object):
                 for key in self.dict_last_flowrate.keys():
                     if key in pumps_in_inlet_group:
                         last_rate += self.dict_last_flowrate[key] * self.pump_configuration_n[key]
-                p.logger_pump.debug("last rate, volume: ", last_rate, last_volume)
+                p.logger_pump.debug("last rate, volume: ", str(last_rate), str(last_volume))
                 total_V.append(last_volume)
                 total_FR.append(last_rate)
 
@@ -1110,7 +1113,8 @@ class Mixing(object):
 
             p.logger_pump.debug("total_V: ", total_V)
             p.logger_pump.debug("total_FR: ", total_FR)
-            p.logger_pump.debug("total_v_outlet: ", total_v_outlet)
+            # passing lists to the logger function raises a TypeError
+            p.logger_pump.debug("total_v_outlet: ", ", ".join(total_v_outlet))
             collecting_calculation()
 
             for i in range(len(self.name[:-1])):
@@ -1153,22 +1157,24 @@ class Mixing(object):
                 error_message(2, add_info)
 
             # calculate the dead volume
-            ramping_volume = channel_instance.volume_tubing("inlet_1_1")
-            volume_to_mixing_2 = channel_instance.volume_to_mixing_2()
-            volume_mixing_2_to_outlet = (channel_instance.volume_channel_section("mixing_2-meander_2")
-                                         + channel_instance.volume_channel_section("meander_2-meander_2")
-                                         + channel_instance.volume_channel_section("meander_2-outlet")
-                                         + channel_instance.volume_tubing("outlet")
-                                         )
+            ramping_volume = round(channel_instance.volume_tubing("inlet_1_1"), 2)
+            volume_to_mixing_2 = round(channel_instance.volume_to_mixing_2(), 2)
+            volume_mixing_2_to_outlet = round((channel_instance.volume_channel_section("mixing_2-meander_2")
+                                               + channel_instance.volume_channel_section("meander_2-meander_2")
+                                               + channel_instance.volume_channel_section("meander_2-outlet")
+                                               + channel_instance.volume_tubing("outlet")
+                                               ), 2)
             dead_volume = volume_to_mixing_2 + volume_mixing_2_to_outlet
-            p.logger_pump.debug("ramping volume: {}\nvolume to mixing 2: ".format(ramping_volume),
-                                "{}\nvolume mixing 2 to outlet: {}".format(volume_to_mixing_2,
-                                                                           volume_mixing_2_to_outlet))
+            p.logger_pump.debug("ramping volume: {}\nvolume to mixing 2: ".format(str(ramping_volume)),
+                                "{}\nvolume mixing 2 to outlet: {}".format(str(volume_to_mixing_2),
+                                                                           str(volume_mixing_2_to_outlet))
+                                )
 
             self.name.insert(0, "Waste (channel)")
             self.name.insert(0, "Waste (ramping)")
-            p.logger_pump.debug("dead volumes: ", volume_to_mixing_2, volume_mixing_2_to_outlet)
-            p.logger_pump.debug("name: ", self.name)
+            p.logger_pump.debug("dead volumes: ", str(volume_to_mixing_2), str(volume_mixing_2_to_outlet))
+            # passing a list to the logging function raises a TypeError
+            p.logger_pump.debug("name: ", ", ".join(self.name))
 
             total_V_group1 = total_V_FR_calculation(self.inlet_group_1)[0]
             total_FR_group1 = total_V_FR_calculation(self.inlet_group_1)[1]
@@ -1189,8 +1195,9 @@ class Mixing(object):
             p.logger_pump.debug("total_v_outlet: ", total_v_outlet)
 
             volume_to_mixing_2_time = volume_to_mixing_2 / total_FR_group1[0]*3600
-            p.logger_pump.debug("total vols: ", "\n", total_V_group1, "\n", total_V_group2)
-            p.logger_pump.debug("total FRs: ", "\n", total_FR_group1, "\n", total_FR_group2)
+            # passing lists to the logging function raises a TypeError
+            p.logger_pump.debug("total vols: ", "\n", ", ".join(total_V_group1), "\n", ", ".join(total_V_group2))
+            p.logger_pump.debug("total FRs: ", "\n", ", ".join(total_FR_group1), "\n", ", ".join(total_FR_group2))
 
             # calculate time points group 1 and group 2 in sec. and sort them in ascending order in a new list.
             time_points_1 = [ramping_time]
