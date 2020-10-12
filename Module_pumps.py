@@ -54,8 +54,7 @@ def start_logging():
     return logger_pump, logger_collector
 
 
-logger_pump = start_logging()[0]
-logger_collector = start_logging()[1]
+logger_pump, logger_collector = start_logging()
 
 
 class Chain(serial.Serial):

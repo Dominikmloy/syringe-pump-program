@@ -129,9 +129,9 @@ class Mixing(object):
                   "\nFor example: runs = 3.",
                   "\nAdditional info: ", additional_info,
                   "\nProgram aborted.")
-            p.logger_pump.debug("Error message {}: ".format(error_number),
-                                "Function 'number_of_runs()' aborted",
-                                " due to errors in the kwargs: {}.".format(runs))
+            p.logger_pump.debug("""Error message {}: Function 'number_of_runs()' 
+                                aborted due to errors in the kwargs: {}.""".format(error_number, runs)
+                                )
             raise SystemExit("Program aborted.")
 
         if runs:
@@ -172,10 +172,9 @@ class Mixing(object):
                   "\nFor example: LA120_rate = [120, 160, 180}.",
                   "\nAdditional info: ", additional_info,
                   "\nProgram aborted.")
-            p.logger_pump.debug("Error message {}: ".format(error_number),
-                                "Function 'rate()' aborted",
-                                " due to errors in the kwargs: {}.\n".format(kwargs),
-                                additional_info)
+            p.logger_pump.debug("""Error message {}: Function 'rate()' aborted 
+                                due to errors in the kwargs: {}.\n {}""".format(error_number, kwargs, additional_info)
+                                )
             raise SystemExit("Program aborted.")
 
         def check_max_flow_rate(question):
@@ -192,9 +191,9 @@ class Mixing(object):
                 p.logger_pump.debug("Total flow rate of run {}: {}".format(i + 1, flow_rate))
 
                 if flow_rate > self.setup.max_flowrate:
-                    p.logger_pump.warning(
-                        "WARNING! TOTAL FLOW RATE EXCEEDS MAXIMUM FLOW RATE! ({})".format(
-                            self.setup.max_flowrate))
+                    p.logger_pump.warning("WARNING! TOTAL FLOW RATE EXCEEDS MAXIMUM FLOW RATE! ({})".format(
+                                            self.setup.max_flowrate)
+                                          )
                     print("Do you want to {}?".format(question))
                     answer = input("> ")
                     positive_answers = ["y", "j", "yes", "ja"]
@@ -380,9 +379,11 @@ class Mixing(object):
                   "\nFor example: LA120 = [20, 40, 60}.",
                   "\nAdditional info: ", additional_info,
                   "\nProgram aborted.")
-            p.logger_pump.debug("Error message {}: ".format(error_number),
-                                "Function 'volume()' aborted",
-                                " due to errors in the kwargs: {}.".format(kwargs))
+            p.logger_pump.debug("""Error message {}: Function 'volume()' aborted 
+                                due to errors in the kwargs: {}.\n{}""".format(error_number,
+                                                                               kwargs,
+                                                                               additional_info)
+                                )
             raise SystemExit("Program aborted.")
 
         if kwargs:
@@ -476,9 +477,11 @@ class Mixing(object):
                   "\nFor example: overlap = 12.",
                   "\nAdditional info: ", additional_info,
                   "\nProgram aborted.")
-            p.logger_pump.debug("Error message {}: ".format(error_number),
-                                "Function 'overlap_calc()' aborted",
-                                " due to errors in the kwargs: {}.".format(overlap))
+            p.logger_pump.debug("""Error message {}: Function 'overlap_calc()' aborted 
+                                due to errors in the kwargs: {}.\n{}""".format(error_number,
+                                                                               overlap,
+                                                                               additional_info)
+                                )
             raise SystemExit("Program aborted.")
 
         if overlap:
@@ -598,9 +601,11 @@ class Mixing(object):
                   "\nFor example: purging_pumps = ['LA120', 'LA160'] ",
                   "\nAdditional info: ", additional_info,
                   "\nProgram aborted.")
-            p.logger_pump.debug("Error message {}: ".format(error_number),
-                                "Function 'purging_pumps()' aborted",
-                                " due to errors in the kwargs: {}.".format(purging_pumps))
+            p.logger_pump.debug("""Error message {}: Function 'purging_pumps()' aborted
+                                due to errors in the kwargs: {}.\n{}""".format(error_number,
+                                                                               purging_pumps,
+                                                                               additional_info)
+                                )
             raise SystemExit("Program aborted.")
 
         pumps_end_process = []
@@ -651,7 +656,7 @@ class Mixing(object):
             # transform dictionaries into strings for better logging
             trans_string = self.dict_to_string(transformation_dict)
             units_string = self.dict_to_string(self.dict_units_pumps)
-            p.logger_pump.debug("transformation dict", units_string, trans_string)
+            p.logger_pump.debug("transformation dict: {}, {}".format(units_string, trans_string))
 
             # make a list of the inlets connected to the pumps that will purge the channel.
             pumps_inlets = []
@@ -936,7 +941,7 @@ class Mixing(object):
             # transform the following dictionaries to strings for the logging function
             conversion_rate_str = self.dict_to_string(conversion_rate)
             conversion_volume_str = self.dict_to_string(conversion_volume)
-            p.logger_pump.debug("conversions: ", conversion_rate_str, conversion_volume_str)
+            p.logger_pump.debug("conversions: {}, {}".format(conversion_rate_str, conversion_volume_str))
             pumps_in_inlet_group = []
             for inlet in inlet_group:
                 if inlet in self.dict_inlets_pumps.keys():
@@ -1004,7 +1009,7 @@ class Mixing(object):
                 for key in self.dict_last_flowrate.keys():
                     if key in pumps_in_inlet_group:
                         last_rate += self.dict_last_flowrate[key] * self.pump_configuration_n[key]
-                p.logger_pump.debug("last rate, volume: ", str(last_rate), str(last_volume))
+                p.logger_pump.debug("last rate: {}, volume: {}".format(str(last_rate), str(last_volume)))
                 total_V.append(last_volume)
                 total_FR.append(last_rate)
 
@@ -1111,10 +1116,10 @@ class Mixing(object):
             total_v_outlet = total_V[:-1]
             total_v_outlet.insert(0, dead_volume)
 
-            p.logger_pump.debug("total_V: ", total_V)
-            p.logger_pump.debug("total_FR: ", total_FR)
-            # passing lists to the logger function raises a TypeError
-            p.logger_pump.debug("total_v_outlet: ", ", ".join(total_v_outlet))
+            p.logger_pump.debug("total_V: {}".format(total_V))
+            p.logger_pump.debug("total_FR: {}".format(total_FR))
+
+            p.logger_pump.debug("total_v_outlet: ".format(total_v_outlet))
             collecting_calculation()
 
             for i in range(len(self.name[:-1])):
@@ -1130,9 +1135,11 @@ class Mixing(object):
                       "\nAn error has occurred in the 'mixing()' function.",
                       "\nAdditional info:", additional_info,
                       "\nProgram aborted.")
-                print("Error message {}: ".format(error_number),  # p.logger_pump.debug
-                      "Function 'mixing()' aborted.",
-                      "\nAdditional info: {}.".format(additional_info))
+                p.logger_pump.debug("""Error message {}: Function 'mixing()' aborted.
+                                    Additional info: {}.""".format(error_number,
+                                                                   additional_info)
+                                    )
+
                 raise SystemExit("Program aborted.")
 
             # assign pump instances to inlets to enable the starting of the pumps at different time points.
@@ -1172,9 +1179,12 @@ class Mixing(object):
 
             self.name.insert(0, "Waste (channel)")
             self.name.insert(0, "Waste (ramping)")
-            p.logger_pump.debug("dead volumes: ", str(volume_to_mixing_2), str(volume_mixing_2_to_outlet))
+            p.logger_pump.debug("""dead volumes:\n inlet to mixing 2: {}
+                                mixing 2 to outlet: {}""".format(str(volume_to_mixing_2),
+                                                                 str(volume_mixing_2_to_outlet))
+                                )
             # passing a list to the logging function raises a TypeError
-            p.logger_pump.debug("name: ", ", ".join(self.name))
+            p.logger_pump.debug("name: {}".format(self.name))
 
             total_V_group1 = total_V_FR_calculation(self.inlet_group_1)[0]
             total_FR_group1 = total_V_FR_calculation(self.inlet_group_1)[1]
@@ -1192,12 +1202,16 @@ class Mixing(object):
                 if self.volumes_LA160:
                     all_volumes += self.volumes_LA160[i]*self.pump_configuration_n["LA160"]
                 total_v_outlet.append(all_volumes)  # zB total_v_run1, overlap, total_v_run2, overlap, total_v_run3
-            p.logger_pump.debug("total_v_outlet: ", total_v_outlet)
+            p.logger_pump.debug("total_v_outlet: {}".format(total_v_outlet))
 
             volume_to_mixing_2_time = volume_to_mixing_2 / total_FR_group1[0]*3600
             # passing lists to the logging function raises a TypeError
-            p.logger_pump.debug("total vols: ", "\n", ", ".join(total_V_group1), "\n", ", ".join(total_V_group2))
-            p.logger_pump.debug("total FRs: ", "\n", ", ".join(total_FR_group1), "\n", ", ".join(total_FR_group2))
+            p.logger_pump.debug("total vols: Group 1: {}\nGroup 2: {}".format(total_V_group1,
+                                                                              total_V_group2)
+                                )
+            p.logger_pump.debug("total FRs: Group 1: {}\nGroup 2: {}".format(total_FR_group1,
+                                                                             total_FR_group2)
+                                )
 
             # calculate time points group 1 and group 2 in sec. and sort them in ascending order in a new list.
             time_points_1 = [ramping_time]
@@ -1263,13 +1277,18 @@ class Mixing(object):
             for i in range(len(self.name[:-1])):
                 if i == 0:
                     countdown(self.name[i], round(time_points_2[0]))
-                    p.logger_pump.debug(self.name[i], ":", round(time_points_2[0]))
+                    p.logger_pump.debug("{}: {}".format(self.name[i],
+                                                        round(time_points_2[0]))
+                                        )
                     # start pumps connected to inlet 2_1 and inlet 2_2.
                     pump_inlet_2_1.start()
                     if pump_inlet_2_2:
                         pump_inlet_2_2.start()
                     countdown(self.name[i], round(self.time_list[i] - time_points_2[0]))  # countdown
-                    p.logger_pump.debug(self.name[i], ":", round(self.time_list[i] - time_points_2[0]))
+
+                    p.logger_pump.debug("{}: {}".format(self.name[i],
+                                                        round(self.time_list[i] - time_points_2[0]))
+                                        )
                 else:
                     countdown(self.name[i], ":", round(self.time_list[i]))
                     p.logger_pump.debug(self.name[i], ":", round(self.time_list[i]))  # countdown
