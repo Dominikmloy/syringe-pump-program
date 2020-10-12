@@ -1036,34 +1036,34 @@ class Mixing(object):
                     vol_1 = total_V[i] - total_v_outlet[0]
                     vol_2 = total_V[i] - vol_1
                     self.time_list.append(round((vol_1 / total_FR[i] + vol_2 / total_FR[i + 1]) * 3600, 2))
-                    print("vol_1: {}\nvol_2: {}\ntime list: {}".format(vol_1, vol_2, self.time_list))
+                    # print("vol_1: {}\nvol_2: {}\ntime list: {}".format(vol_1, vol_2, self.time_list))
                     i += 1
                 else:  # if total_V[0] > total_V_outlet[0]
                     j = len(self.time_list)
                     if j == 0:
                         rest = total_v_outlet[j] - total_V[j]
                         self.time_list.append(round(total_V[j] / total_FR[j] * 3600, 2))
-                        print("48: ", i, j, self.time_list)
+                        # print("48: ", i, j, self.time_list)
 
                     else:
                         if transfer < total_v_outlet[j]:
                             self.time_list.append(round(transfer / total_FR[i] * 3600, 2))
-                            print("52: ", i, j, self.time_list)
+                            # print("52: ", i, j, self.time_list)
                             rest = total_v_outlet[j] - transfer  # belongs to self.time_list [-1]
                         else:  # transfer > total_v_outlet
                             self.time_list.append(round(total_v_outlet[j] / total_FR[i] * 3600, 2))
-                            print("56: ", i, j, self.time_list)
+                            # print("56: ", i, j, self.time_list)
                             rest = transfer - total_v_outlet[j]  # belongs to self.time_list [-1]
 
                     while rest != 0:
                         i += 1
                         if rest >= total_V[i]:
                             self.time_list[j] = self.time_list[j] + round(total_V[i] / total_FR[i] * 3600, 2)
-                            print("62: ", i, j, self.time_list)
+                            # print("62: ", i, j, self.time_list)
                             rest -= total_V[i]
                         else:
                             self.time_list[j] = self.time_list[j] + round(rest / total_FR[i] * 3600, 2)
-                            print("66: ", i, j, self.time_list)
+                            # print("66: ", i, j, self.time_list)
                             transfer = total_V[i] - rest  # the rest of the volume when the waste collection is over
                             rest = 0
 
@@ -1072,19 +1072,19 @@ class Mixing(object):
                         while j < i:
                             j += 1
                             self.time_list.append(round(total_v_outlet[j] / total_FR[i] * 3600, 2))
-                            print("84: ", i, j, self.time_list)
+                            # print("84: ", i, j, self.time_list)
 
         def collecting_calculation_2():
             i = 0
             for volume in total_v_outlet:
                 duration = 0
                 rest = volume  # wie gehe ich mit dem overlap um?
-                #print("105: ", rest)
+                # print("105: ", rest)
                 while rest > 0:
                     if rest >= total_V[i]:
                         duration += total_V[i] / total_FR[i] * 3600
                         rest -= total_V[i]
-                        #print(
+                        # print(
                         #   "109: {}\nV: {}, FR: {}\nrest: {}, duration: {}, ".format(i, total_V[i], total_FR[i], rest,
                         #                                                            duration))
                         i += 1
@@ -1092,7 +1092,7 @@ class Mixing(object):
                         duration += rest / total_FR[i] * 3600
                         total_V[i] = total_V[i] - rest
                         rest = 0
-                        #print("115: {}\nV: {}, FR: {}, duration: {}, ".format(i, total_V[i], total_FR[i], duration))
+                        # print("115: {}\nV: {}, FR: {}, duration: {}, ".format(i, total_V[i], total_FR[i], duration))
                 self.time_list.append(duration)
 
         # Depending on the channel used, different parts of the code need to be executed.
@@ -1274,13 +1274,12 @@ class Mixing(object):
             pump_inlet_1_1.start()
             if pump_inlet_2_1:
                 pump_inlet_1_2.start()
-            # todo: can be changed to debug or removed if useful.
-            p.logger_pump.info("""Steps: {}\nTime points 1: {}\nTime points 2: {}
-                                Time points total: {}\nTime list: {}""".format(self.name,
-                                                                               time_points_1,
-                                                                               time_points_2,
-                                                                               time_points_total,
-                                                                               self.time_list))
+            p.logger_pump.debug("""Steps: {}\nTime points 1: {}\nTime points 2: {}
+            Time points total: {}\nTime list: {}""".format(self.name,
+                                                           time_points_1,
+                                                           time_points_2,
+                                                           time_points_total,
+                                                           self.time_list))
             for i in range(len(self.name[:-1])):
                 if i == 0:
                     countdown(time_points_2[0], self.name[i])

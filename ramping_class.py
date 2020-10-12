@@ -257,7 +257,7 @@ class Ramping(object):
             if sorted(kwargs.keys()) == sorted(self.dict_tubing_volume.keys())[:-1]:  # inlet_1_1: 12
                 for key in kwargs:
                     self.dict_inlets_pumps[key] = kwargs[key]  # inlet_1_1: LA120
-                    print("{} is connected to pump {}.".format(key, kwargs[key]))
+                    p.logger_pump.info("{} is connected to pump {}.".format(key, kwargs[key]))
             else:
                 error_message(2)
         else:
@@ -345,10 +345,10 @@ class Ramping(object):
                 # distribute the kwargs to their respective category.
                 if 'rate' in key:
                     self.dict_rates_pumps[key[:5]] = kwargs[key]
-                    print("{}'s rate is {}.".format(key[:5], self.dict_rates_pumps[key[:5]]))
+                    p.logger_pump.info("{}'s rate is {}.".format(key[:5], self.dict_rates_pumps[key[:5]]))
                 elif 'unit' in key:
                     self.dict_units_pumps[key[:5]] = kwargs[key]
-                    print("{}'s unit is {}.".format(key[:5], self.dict_units_pumps[key[:5]]))
+                    p.logger_pump.info("{}'s unit is {}.".format(key[:5], self.dict_units_pumps[key[:5]]))
         else:
             for pump in sorted(self.pump_configuration_n):
                 print("What is the first flow rate for pump {}?".format(pump))
