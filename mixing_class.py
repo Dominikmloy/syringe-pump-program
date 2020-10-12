@@ -1079,20 +1079,20 @@ class Mixing(object):
             for volume in total_v_outlet:
                 duration = 0
                 rest = volume  # wie gehe ich mit dem overlap um?
-                print("105: ", rest)
+                #print("105: ", rest)
                 while rest > 0:
                     if rest >= total_V[i]:
                         duration += total_V[i] / total_FR[i] * 3600
                         rest -= total_V[i]
-                        print(
-                            "109: {}\nV: {}, FR: {}\nrest: {}, duration: {}, ".format(i, total_V[i], total_FR[i], rest,
-                                                                                      duration))
+                        #print(
+                        #   "109: {}\nV: {}, FR: {}\nrest: {}, duration: {}, ".format(i, total_V[i], total_FR[i], rest,
+                        #                                                            duration))
                         i += 1
                     elif rest < total_V[i]:
                         duration += rest / total_FR[i] * 3600
                         total_V[i] = total_V[i] - rest
                         rest = 0
-                        print("115: {}\nV: {}, FR: {}, duration: {}, ".format(i, total_V[i], total_FR[i], duration))
+                        #print("115: {}\nV: {}, FR: {}, duration: {}, ".format(i, total_V[i], total_FR[i], duration))
                 self.time_list.append(duration)
 
         # Depending on the channel used, different parts of the code need to be executed.
@@ -1172,16 +1172,17 @@ class Mixing(object):
                                                + channel_instance.volume_tubing("outlet")
                                                ), 2)
             dead_volume = volume_to_mixing_2 + volume_mixing_2_to_outlet
-            p.logger_pump.debug("ramping volume: {}\nvolume to mixing 2: ".format(str(ramping_volume)),
-                                "{}\nvolume mixing 2 to outlet: {}".format(str(volume_to_mixing_2),
-                                                                           str(volume_mixing_2_to_outlet))
+            p.logger_pump.debug("""ramping volume: {}\nvolume to mixing 2: {}
+                                volume mixing 2 to outlet: {}""".format(round(ramping_volume, 1),
+                                                                        round(volume_to_mixing_2, 1),
+                                                                        round(volume_mixing_2_to_outlet, 1))
                                 )
 
             self.name.insert(0, "Waste (channel)")
             self.name.insert(0, "Waste (ramping)")
             p.logger_pump.debug("""dead volumes:\n inlet to mixing 2: {}
-                                mixing 2 to outlet: {}""".format(str(volume_to_mixing_2),
-                                                                 str(volume_mixing_2_to_outlet))
+                                mixing 2 to outlet: {}""".format(round(volume_to_mixing_2, 1),
+                                                                 round(volume_mixing_2_to_outlet, 1))
                                 )
             # passing a list to the logging function raises a TypeError
             p.logger_pump.debug("name: {}".format(self.name))
@@ -1276,7 +1277,7 @@ class Mixing(object):
 
             for i in range(len(self.name[:-1])):
                 if i == 0:
-                    countdown(self.name[i], round(time_points_2[0]))
+                    countdown(time_points_2[0], self.name[i])
                     p.logger_pump.debug("{}: {}".format(self.name[i],
                                                         round(time_points_2[0]))
                                         )
@@ -1284,13 +1285,13 @@ class Mixing(object):
                     pump_inlet_2_1.start()
                     if pump_inlet_2_2:
                         pump_inlet_2_2.start()
-                    countdown(self.name[i], round(self.time_list[i] - time_points_2[0]))  # countdown
+                    countdown(round(self.time_list[i] - time_points_2[0]), self.name[i])  # countdown
 
                     p.logger_pump.debug("{}: {}".format(self.name[i],
                                                         round(self.time_list[i] - time_points_2[0]))
                                         )
                 else:
-                    countdown(self.name[i], ":", round(self.time_list[i]))
+                    countdown(round(self.time_list[i]), self.name[i])
                     p.logger_pump.debug(self.name[i], ":", round(self.time_list[i]))  # countdown
 
         else:
