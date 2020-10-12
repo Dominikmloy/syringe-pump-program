@@ -1092,7 +1092,7 @@ class Mixing(object):
 
         # Depending on the channel used, different parts of the code need to be executed.
         if channel_used == "Single meander channel":  # from main.py select_channel()
-            print("pump_instance.start_all ", pumps_active, pumps_adr)
+            pump_instance.start_all(pumps_active, pumps_adr)
             if ramping_time > 0:  # surrogate test if the ramping class was instantiated before.
                 print(ramping_time, "ramping:")  # countdown
             # calculate the dead volume of the channel: volume of the complete channel +
@@ -1208,9 +1208,17 @@ class Mixing(object):
 
             # create a sorted list of all time points
             for i in range(len(total_V_group1)):
-                time_points_1.append(time_points_1[i] + total_V_group1[i] / total_FR_group1[i] * 3600)
+                if total_FR_group1[i] != 0:
+                    time_points_1.append(time_points_1[i] + total_V_group1[i] / total_FR_group1[i] * 3600)
+                else:
+                    time_points_1.append(time_points_1[i])  # check, if this time point need to be appended.
+
             for i in range(len(total_V_group2)):
-                time_points_2.append(time_points_2[i + 1] + total_V_group2[i] / total_FR_group2[i] * 3600)
+                if total_FR_group2[i] != 0:
+                    time_points_2.append(time_points_2[i + 1] + total_V_group2[i] / total_FR_group2[i] * 3600)
+                else:
+                    time_points_2.append(time_points_2[i + 1])  # check, if this time point need to be appended.
+
             time_points_total = sorted(time_points_1 + time_points_2)
 
             # insert the flow rates and volumes for the additional events
