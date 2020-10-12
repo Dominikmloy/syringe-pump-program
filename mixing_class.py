@@ -1292,7 +1292,7 @@ class Mixing(object):
                                         )
                 else:
                     countdown(round(self.time_list[i]), self.name[i])
-                    p.logger_pump.debug(self.name[i], ":", round(self.time_list[i]))  # countdown
+                    p.logger_pump.debug("{}: {}".format(self.name[i], round(self.time_list[i])))  # countdown
 
         else:
             print("""Either there is a spelling issue in the attribute 'channel_dict' in
