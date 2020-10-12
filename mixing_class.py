@@ -1274,7 +1274,13 @@ class Mixing(object):
             pump_inlet_1_1.start()
             if pump_inlet_2_1:
                 pump_inlet_1_2.start()
-
+            # todo: can be changed to debug or removed if useful.
+            p.logger_pump.info("""Steps: {}\nTime points 1: {}\nTime points 2: {}
+                                Time points total: {}\nTime list: {}""".format(self.name,
+                                                                               time_points_1,
+                                                                               time_points_2,
+                                                                               time_points_total,
+                                                                               self.time_list))
             for i in range(len(self.name[:-1])):
                 if i == 0:
                     countdown(time_points_2[0], self.name[i])
