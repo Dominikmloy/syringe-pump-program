@@ -1211,13 +1211,13 @@ class Mixing(object):
                 if total_FR_group1[i] != 0:
                     time_points_1.append(time_points_1[i] + total_V_group1[i] / total_FR_group1[i] * 3600)
                 else:
-                    time_points_1.append(time_points_1[i])  # check, if this time point need to be appended.
+                    pass
 
             for i in range(len(total_V_group2)):
                 if total_FR_group2[i] != 0:
                     time_points_2.append(time_points_2[i + 1] + total_V_group2[i] / total_FR_group2[i] * 3600)
                 else:
-                    time_points_2.append(time_points_2[i + 1])  # check, if this time point need to be appended.
+                    pass
 
             time_points_total = sorted(time_points_1 + time_points_2)
 
