@@ -461,7 +461,7 @@ class Mixing(object):
 
     def overlap_calc(self, overlap=None):
         """ This function asks for the overlap between runs and stores them
-        in a variable (self.overlap). A sensible value is 8 \u03BCl. Afterwards, it adds volumes
+        in the variable 'self.overlap'. A sensible value is 8 \u03BCl. Afterwards, it adds volumes
         and rates in between runs in self.rates_LAxxx und self.vol_LAxxx.
         Alternatively, the overlap volume can be passed to the function via the kwargs.
         The name of the argument must be 'overlap'. For example: overlap = 8
@@ -498,7 +498,7 @@ class Mixing(object):
             except ValueError:
                 error_message(1, "Flow rate must be a number (int or float).")
 
-            # calculate relative overlap for each pump
+        # calculate relative overlap for each pump
         def _relative_overlap_calc(rates_list):
             """
             This function takes the list of the rates from one pump as parameter and calculates the relative
