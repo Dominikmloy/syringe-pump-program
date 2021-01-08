@@ -1,8 +1,10 @@
 # Syringe Pump Program - Feeding Module
 This repository holds python code for and anything related to the syringe pump program 
 that is part of a larger program that controls the microfluidic nanoparticle production system. 
-The paper describing the system is currently in submission. A link to the paper will be posted here 
-as soon as it is published.
+The paper describing the system can be found here: 
+Loy, D.M.; Krzysztoń, R.; Lächelt, U.; Rädler, J.O.; Wagner, E. 
+Controlling Nanoparticle Formulation: A Low-Budget Prototype for the Automation of a Microfluidic Platform. Processes 2021, 9, 129. 
+https://doi.org/10.3390/pr9010129
 
 ## Getting Started
 1. Download all python files and save them to one dedicated folder on your raspberry pi.
